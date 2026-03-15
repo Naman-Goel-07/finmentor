@@ -59,7 +59,7 @@ export default function AddGoalModal() {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer min-h-[44px]"
       >
         <Plus size={20} />
         New Goal
@@ -70,7 +70,7 @@ export default function AddGoalModal() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
             <button 
               onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-2 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <X size={20} />
             </button>
@@ -136,14 +136,14 @@ export default function AddGoalModal() {
                 <button 
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+                  className="w-full md:w-auto px-4 py-2 min-h-[44px] font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-full md:w-auto px-4 py-2 min-h-[44px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
                 >
                   {loading ? "Saving..." : "Save Goal"}
                 </button>

@@ -39,9 +39,9 @@ export default function LearningPage() {
         <p className="text-gray-500 mt-1">Boost your financial literacy with bite-sized lessons.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {lessons.map((lesson, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full">
+          <div key={idx} className="w-full bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full">
              <div className="flex items-start gap-4 mb-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${lesson.color}`}>
                    <lesson.icon size={24} />
@@ -53,8 +53,8 @@ export default function LearningPage() {
                    </span>
                 </div>
              </div>
-             <p className="text-gray-600 flex-grow">{lesson.description}</p>
-             <button className="mt-6 text-blue-600 font-semibold text-sm flex items-center gap-1 hover:text-blue-800 transition-colors self-start cursor-pointer">
+             <p className="text-gray-600 flex-grow text-sm md:text-base">{lesson.description}</p>
+             <button className="mt-6 text-blue-600 font-semibold text-sm flex items-center justify-center gap-1 hover:text-blue-800 transition-colors self-start cursor-pointer min-h-[44px]">
                 Start Lesson &rarr;
              </button>
           </div>

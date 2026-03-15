@@ -73,7 +73,7 @@ export default function AICoachPage() {
          <button 
            onClick={handleAnalyze} 
            disabled={loading}
-           className="bg-gray-900 hover:bg-black text-white font-semibold py-3 px-8 rounded-xl transition-colors disabled:opacity-70 flex items-center gap-2 mx-auto cursor-pointer"
+           className="w-full md:w-auto min-h-[44px] bg-gray-900 hover:bg-black text-white font-semibold py-3 px-8 rounded-xl transition-colors disabled:opacity-70 flex items-center justify-center gap-2 mx-auto cursor-pointer"
          >
            {loading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
            {loading ? "Analyzing your data..." : "Analyze My Spending"}

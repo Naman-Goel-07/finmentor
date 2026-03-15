@@ -102,7 +102,7 @@ export default function GoalCard({ goal }: { goal: any }) {
         />
       )}
       <div className={clsx(
-        "bg-white p-6 rounded-2xl shadow-sm border flex flex-col transition-all duration-300",
+        "bg-white p-4 md:p-6 rounded-2xl shadow-sm border flex flex-col transition-all duration-300 w-full",
         isCompleted ? "border-green-200 bg-green-50/10" : "border-gray-100"
       )}>
         <div 
@@ -179,7 +179,7 @@ export default function GoalCard({ goal }: { goal: any }) {
                    <button 
                      onClick={() => handleGoalAction('archive')} 
                      disabled={loadingAction === 'archive'}
-                     className="flex-1 py-2.5 rounded-lg font-medium text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                     className="flex-1 min-h-[44px] py-2.5 rounded-lg font-medium text-sm md:text-base text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
                    >
                      {loadingAction === 'archive' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive size={16} />} 
                      Archive Goal
@@ -187,7 +187,7 @@ export default function GoalCard({ goal }: { goal: any }) {
                    <button 
                      onClick={() => handleGoalAction('delete')} 
                      disabled={loadingAction === 'delete'}
-                     className="flex-1 py-2.5 rounded-lg font-medium text-sm text-red-700 bg-red-50 hover:bg-red-100 transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                     className="flex-1 min-h-[44px] py-2.5 rounded-lg font-medium text-sm md:text-base text-red-700 bg-red-50 hover:bg-red-100 transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
                    >
                      {loadingAction === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />} 
                      Delete Goal
@@ -211,7 +211,7 @@ export default function GoalCard({ goal }: { goal: any }) {
                         key={amount}
                         onClick={() => handleQuickSave(amount)}
                         disabled={loadingAction !== null}
-                        className="flex-1 py-2 rounded-lg font-medium text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50 flex justify-center items-center cursor-pointer"
+                        className="flex-1 min-h-[44px] py-2 rounded-lg font-medium text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50 flex justify-center items-center cursor-pointer"
                       >
                         {loadingAction === amount ? <Loader2 className="w-4 h-4 animate-spin" /> : `+₹${amount}`}
                       </button>

@@ -30,8 +30,8 @@ export default function DashboardCharts({ expenses }: { expenses: any[] }) {
   })).reverse(); // simple chronological sort if expenses are descending by date
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 w-full">
+      <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden">
         <h3 className="text-lg font-bold text-gray-800 mb-4">Spending by Category</h3>
         <div className="h-72">
           {pieData.length > 0 ? (
@@ -60,8 +60,8 @@ export default function DashboardCharts({ expenses }: { expenses: any[] }) {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Monthly Spending</h3>
+      <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 truncate">Monthly Spending</h3>
         <div className="h-72">
           {barData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">

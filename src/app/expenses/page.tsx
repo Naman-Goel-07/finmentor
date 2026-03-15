@@ -72,7 +72,7 @@ export default async function ExpensesPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full pb-4">
             {expenses.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
