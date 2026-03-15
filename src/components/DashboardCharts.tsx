@@ -51,7 +51,7 @@ export default function DashboardCharts({ expenses }: { expenses: any[] }) {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value : number | string | undefined) => 
+                formatter={(value) => 
                   `$${Number(value ?? 0).toFixed(2)}`
                 }
               />
