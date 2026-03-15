@@ -50,7 +50,11 @@ export default function DashboardCharts({ expenses }: { expenses: any[] }) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <Tooltip
+                formatter={(value : number | string | undefined) => 
+                  `$${Number(value ?? 0).toFixed(2)}`
+                }
+              />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
