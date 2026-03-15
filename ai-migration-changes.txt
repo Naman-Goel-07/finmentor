@@ -1,0 +1,39 @@
+AI Migration Changes
+
+1. Files Modified:
+   - `c:\Users\user\Desktop\vsc files\JIMS KA HACKATHON\finmentor-ai\.env.local`
+     > Removed OPENAI_API_KEY, added GEMINI_API_KEY.
+   - `c:\Users\user\Desktop\vsc files\JIMS KA HACKATHON\finmentor-ai\src\app\page.tsx`
+     > Replaced `OPENAI_API_KEY` validation check with `GEMINI_API_KEY`.
+     > Updated UI error banner with "Please configure Supabase and Gemini API keys in .env.local".
+     > Added a specific warning: "AI coach disabled until Gemini API key is configured." when only Gemini is missing.
+
+2. New Files Created:
+   - `c:\Users\user\Desktop\vsc files\JIMS KA HACKATHON\finmentor-ai\lib\ai\geminiClient.ts`
+     > Added new API client utilizing `GoogleGenerativeAI` to replace OpenAI client structure.
+   - `c:\Users\user\Desktop\vsc files\JIMS KA HACKATHON\finmentor-ai\src\app\api\analyze-spending\route.ts`
+     > Created/updated the API route for spending analysis using the new Gemini client.
+
+3. Files where OpenAI References were Removed:
+   - `.env.local`
+   - `src/app/page.tsx`
+
+4. Dependencies Added:
+   - Added `@google/generative-ai` to replace `openai`
+   - Removed `openai`
+
+5. Environment Variables Changed:
+   - Removed: `OPENAI_API_KEY`
+   - Added: `GEMINI_API_KEY`
+
+6. Instructions for using Gemini instead of OpenAI:
+   - Set `GEMINI_API_KEY=your_gemini_api_key` in `.env.local`.
+   - The backend specifically utilizes the `gemini-1.5-flash` model.
+   - No extra prompts are needed; the interface remains identical for the `analyzeSpending` function call.
+   - Ensure the Next.js server restarts after adding the new environment variable.
+
+7. Parts of the Codebase Affected by the Migration:
+   - The `src/app/page.tsx` UI error banner checks.
+   - `geminiClient.ts` containing the AI handler block.
+   - Backend `analyze-spending` API route.
+   - Backend Next.js config via `.env.local`.
