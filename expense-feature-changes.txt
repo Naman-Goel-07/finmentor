@@ -47,3 +47,20 @@ Expense Feature Changes
       - `/goals` (Mocked savings tracker targets plotting progress bars)
       - `/learning` (Financial literacy card layout with hover animations)
       - `/ai-coach` (API route integration for Gemini queries passing raw expenses directly into Next layouts safely for localized feedback rendering).
+
+9. Goals Module Complete Upgrade
+   - Fixed Add Goal Feature: Created `src/components/AddGoalModal.tsx` triggering native database insertions.
+   - Designed API endpoints: Built `src/app/api/add-goal/route.ts` and `src/app/api/update-goal/route.ts` mapping precisely to the Supabase schema securely incrementing tracking thresholds.
+   - Goals List Restructure: Revamped `src/app/goals/page.tsx` entirely into a Server Component querying Supabase asynchronously upon load.
+   - UI Architecture mapping logic inside `GoalCard.tsx` encapsulating client states evaluating formulas identifying percent bounds `saved_amount / target_amount`. Integrates localized interactive quick save actions resolving `fetch` directly replacing target parameters while triggering inline animations smoothly on status bounds (On Track / Completed 🎉 / Behind Schedule).
+
+10. Expandable Goal Tracking Details
+   - `goal_savings` History Table Hook: Dynamically logs timestamps, notes, and totals for each interactive push into tracking arrays natively within Supabase mapping to `goals.id`.
+   - Modals and Custom Logic: Built `src/components/AddSavingModal.tsx` triggering customized user additions (like "Skipped Starbucks").
+   - Overhauled `GoalCard.tsx`: Introduced stateful expansion mapping `goal_savings` entries chronologically inside timeline lists.
+   - Dynamic Indicators: Merged heuristics parsing raw dates into dynamic strings (`12 days remaining`, `Deadline passed`), injecting Smart Suggestion prompts projecting `remaining_amount / days_left`.
+   - Completed Archival System: Conditionally swaps Quick Actions for `<Archive />` and `<Trash />` actions firing secure `api/archive-goal` server routes when percentages pass `100%`.
+
+11. Hydration Stabilization & UI Analytics Patch
+   - Hydration Bug Fix: Swapped out non-deterministic `toLocaleDateString()` browser renders with robust Server Component deterministic `date-fns` `format` hooks universally across endpoints to prevent React mismatch exceptions. 
+   - Interactive Progress Graphics: Added `src/components/GoalSavingsChart.tsx` plotting dynamic LineChart visuals natively parsing sequential transactions via Recharts inside expanded `GoalCard` views on-demand seamlessly.
