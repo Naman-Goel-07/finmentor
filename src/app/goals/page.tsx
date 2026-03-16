@@ -44,12 +44,11 @@ export default async function GoalsPage() {
 
 	return (
 		<div className="max-w-5xl mx-auto w-full px-4 py-8">
-			<header className="mb-8 flex justify-between items-center">
-				<div>
-					<h1 className="text-3xl font-bold tracking-tight text-gray-900">Savings Goals</h1>
-					<p className="text-gray-500 mt-1">Track your progress towards your financial objectives.</p>
-				</div>
-				<AddGoalModal />
+			<header className="mb-8">
+				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
+					Savings Goals
+				</h1>
+				<p className="text-gray-500 mt-1 font-medium">Track your progress towards your financial objectives.</p>
 			</header>
 
 			{dbError && (

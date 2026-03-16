@@ -43,8 +43,10 @@ export default function LearningPage() {
 	return (
 		<div className="max-w-6xl mx-auto w-full">
 			<header className="mb-8">
-				<h1 className="text-3xl font-bold tracking-tight text-gray-900">Learning Center</h1>
-				<p className="text-gray-500 mt-1">Boost your financial literacy with bite-sized lessons.</p>
+				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-700 bg-clip-text text-transparent">
+					Learning Center
+				</h1>
+				<p className="text-gray-500 mt-1 font-medium">Boost your financial literacy with bite-sized lessons.</p>
 			</header>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
