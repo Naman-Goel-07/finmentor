@@ -43,19 +43,14 @@ export default async function GoalsPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500">
-			{/* ✅ HEADER: Amber Gradient + Uniform Button */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent leading-tight">
+					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
 						Savings Goals
 					</h1>
-					<p className="text-slate-400 mt-2 font-medium">Track your progress towards your financial objectives.</p>
+					<p className="text-slate-400 mt-2 font-medium italic">Track your progress towards your financial objectives.</p>
 				</div>
-
-				<div className="shrink-0">
-					{/* Ensure the trigger button inside AddGoalModal uses the Amber Gradient style */}
-					<AddGoalModal />
-				</div>
+				<AddGoalModal />
 			</header>
 
 			{/* Error State: Updated for Dark Theme */}
