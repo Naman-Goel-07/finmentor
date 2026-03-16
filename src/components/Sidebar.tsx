@@ -14,9 +14,27 @@ const navItems = [
 	{ name: 'Learning', href: '/learning', icon: GraduationCap },
 ]
 
-export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIsOpen?: (val: boolean) => void }) {
+// ✅ Add profile to the props interface
+interface SidebarProps {
+	isOpen?: boolean
+	setIsOpen?: (val: boolean) => void
+	userProfile: { name: string; avatar: string }
+}
+
+export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps) {
 	const pathname = usePathname()
 	const [isCollapsed, setIsCollapsed] = useState(false)
+
+	// Helper to get initials (e.g., "Naman Goel" -> "NG")
+	const getInitials = (name: string) => {
+		if (!name) return '??'
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2)
+	}
 
 	return (
 		<div
@@ -27,7 +45,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 				isCollapsed ? 'md:w-20' : 'md:w-64 w-64',
 			)}
 		>
-			{/* 🔝 TOP SECTION: Logo & Toggle Button */}
+			{/* 🔝 LOGO SECTION */}
 			<div
 				className={clsx(
 					'flex items-center h-16 border-b border-slate-800/60 transition-all duration-300',
@@ -40,7 +58,6 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 					</div>
 				)}
 
-				{/* ✅ Collapsible Icon moved to the side of the logo */}
 				<button
 					onClick={() => setIsCollapsed(!isCollapsed)}
 					className={clsx(
@@ -51,16 +68,12 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 					{isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
 				</button>
 
-				{/* Mobile Close Button */}
-				<button
-					onClick={() => setIsOpen && setIsOpen(false)}
-					className="md:hidden text-slate-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
-				>
+				<button onClick={() => setIsOpen && setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white p-2">
 					<X size={24} />
 				</button>
 			</div>
 
-			{/* 🧭 NAVIGATION LINKS */}
+			{/* 🧭 NAVIGATION */}
 			<nav className="flex-1 space-y-2 p-4">
 				{navItems.map((item) => {
 					const isActive = pathname === item.href || (pathname === '/' && item.href === '/dashboard')
@@ -77,10 +90,8 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 							)}
 						>
 							<item.icon className={clsx('w-5 h-5 shrink-0', isActive ? 'text-blue-400' : 'group-hover:text-slate-100')} />
-
 							{!isCollapsed && <span className="font-semibold text-sm tracking-wide">{item.name}</span>}
 
-							{/* Tooltip for collapsed mode */}
 							{isCollapsed && (
 								<div className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[60] border border-slate-800 shadow-xl">
 									{item.name}
@@ -91,7 +102,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 				})}
 			</nav>
 
-			{/* 👤 MINI PROFILE FOOTER */}
+			{/* 👤 DYNAMIC MINI PROFILE FOOTER */}
 			<div className="p-4 border-t border-slate-800/60">
 				<div
 					className={clsx(
@@ -99,13 +110,20 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 						isCollapsed ? 'justify-center' : 'bg-slate-900/40 border border-slate-800/40',
 					)}
 				>
-					<div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-						NG
+					{/* Avatar / Initials */}
+					<div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden border border-slate-700">
+						{userProfile.avatar ? (
+							<img src={userProfile.avatar} alt="User" className="w-full h-full object-cover" />
+						) : (
+							getInitials(userProfile.name)
+						)}
 					</div>
+
+					{/* Dynamic Text */}
 					{!isCollapsed && (
 						<div className="overflow-hidden">
-							<p className="text-xs font-bold text-slate-200 truncate">Naman Goel</p>
-							<p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">Free Plan</p>
+							<p className="text-xs font-bold text-slate-200 truncate italic">{userProfile.name || 'FinMentor User'}</p>
+							<p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">PRO PLAN</p>
 						</div>
 					)}
 				</div>

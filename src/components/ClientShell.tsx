@@ -20,7 +20,10 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 				const { data } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).single()
 
 				if (data) {
-					setProfile({ name: data.full_name, avatar: data.avatar_url })
+					setProfile({
+						name: data.full_name || '',
+						avatar: data.avatar_url || '',
+					})
 				}
 			}
 		}
@@ -28,9 +31,9 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	}, [])
 
 	return (
-		// ✅ FORCE DARK BACKGROUND ON THE ENTIRE VIEWPORT
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30">
-			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+			{/* ✅ Pass the dynamic profile state to the Sidebar here */}
+			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={profile} />
 
 			<div className="flex-1 flex flex-col h-screen overflow-hidden">
 				{/* ✅ DARK GLASS HEADER */}
@@ -82,7 +85,10 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 											<Settings size={16} /> App Settings
 										</Link>
 										<div className="h-px bg-slate-800 my-1 mx-2" />
-										<button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium">
+										<button
+											onClick={async () => await supabase.auth.signOut()}
+											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
+										>
 											<LogOut size={16} /> Logout
 										</button>
 									</div>
