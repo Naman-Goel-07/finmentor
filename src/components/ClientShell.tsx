@@ -18,17 +18,21 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		let channel: any
 
 		async function getProfile() {
-			// 1. Fetch the profile directly using the Demo ID (no auth check needed)
-			const { data: profileData, error } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', DEMO_USER_ID).single()
+			// ✅ 1. Only select 'full_name' (removed avatar_url to prevent 400 error)
+			const { data: profileData, error } = await supabase.from('profiles').select('full_name').eq('id', DEMO_USER_ID).single()
+
+			if (error) {
+				console.error('Supabase Fetch Error:', error.message)
+			}
 
 			if (profileData) {
 				setProfile({
 					name: profileData.full_name || '',
-					avatar: profileData.avatar_url || '',
+					avatar: '', // Keep empty as we don't have a DB column for this
 				})
 			}
 
-			// 2. ✅ REALTIME: Still works! Listen for changes to the Demo ID
+			// ✅ 2. REALTIME: Listen for changes to the Demo ID
 			channel = supabase
 				.channel(`profile-demo`)
 				.on(
@@ -40,10 +44,11 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 						filter: `id=eq.${DEMO_USER_ID}`,
 					},
 					(payload) => {
+						// ✅ Only update based on columns that actually exist
 						if (payload?.new) {
 							setProfile({
 								name: payload.new.full_name || '',
-								avatar: payload.new.avatar_url || '',
+								avatar: '',
 							})
 						}
 					},
@@ -65,7 +70,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={profile} />
 
 			<div className="flex-1 flex flex-col h-screen overflow-hidden">
-				{/* HEADER */}
 				<header className="bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/60 h-16 flex items-center shrink-0 z-30">
 					<div className="max-w-6xl mx-auto w-full px-4 md:px-8 flex items-center justify-between">
 						<div className="flex items-center gap-3">
@@ -78,6 +82,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor</h1>
 						</div>
 
+						{/* ✅ This will now display correctly since the 400 error is gone */}
 						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
 							{profile.name ? `Welcome back, ${profile.name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
 						</div>
@@ -87,8 +92,9 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 								onClick={() => setProfileOpen(!profileOpen)}
 								className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-800 transition-all cursor-pointer outline-none group"
 							>
+								{/* Fallback to User icon since avatar column is gone */}
 								<div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white border-2 border-slate-800 shadow-lg overflow-hidden shrink-0">
-									{profile.avatar ? <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" /> : <User size={20} />}
+									<User size={20} />
 								</div>
 								<ChevronDown size={14} className={`text-slate-500 transition-transform duration-300 ${profileOpen ? 'rotate-180' : ''}`} />
 							</button>
