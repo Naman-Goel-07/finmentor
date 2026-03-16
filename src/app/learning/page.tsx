@@ -41,7 +41,7 @@ export default function LearningPage() {
 	]
 
 	return (
-		<div className="max-w-6xl mx-auto w-full">
+		<div>
 			<header className="mb-8">
 				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-700 bg-clip-text text-transparent">
 					Learning Center

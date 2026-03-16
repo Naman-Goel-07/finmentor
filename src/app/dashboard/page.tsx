@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 	const recentExpenses = expenses.slice(0, 5)
 
 	return (
-		<div className="max-w-6xl mx-auto w-full px-4 py-8">
+		<div>
 			<header className="mb-8 flex justify-between items-center break-words">
 				<div>
 					<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">

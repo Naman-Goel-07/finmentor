@@ -62,13 +62,14 @@ export default function ProfilePage() {
 
 	if (loading)
 		return (
-			<div className="flex justify-center p-20">
-				<Loader2 className="animate-spin text-blue-600" size={32} />
+			<div className="min-h-[60vh] flex flex-col items-center justify-center">
+				<Loader2 className="animate-spin text-blue-600" size={40} />
+				<p className="text-gray-400 mt-4 font-medium">Loading your profile...</p>
 			</div>
 		)
 
 	return (
-		<div className="max-w-5xl mx-auto w-full">
+		<div>
 			{/* ✅ GRADIENT HEADING */}
 			<header className="mb-8">
 				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
