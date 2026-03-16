@@ -5,6 +5,9 @@ import supabase from '@/lib/supabaseClient'
 import { User, Mail, Shield, Bell, Save, Loader2, Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+// ✅ The ID we created in Supabase manually
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
+
 export default function ProfilePage() {
 	const [loading, setLoading] = useState(true)
 	const [saving, setSaving] = useState(false)
@@ -13,22 +16,20 @@ export default function ProfilePage() {
 
 	const [formData, setFormData] = useState({
 		full_name: '',
-		email: '',
+		email: 'demo@finmentor.com', // Placeholder since no real email exists
 		currency: 'INR',
 	})
 
 	useEffect(() => {
 		async function fetchProfile() {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser()
-			if (user) {
-				const { data } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
-				setFormData({
-					full_name: data?.full_name || '',
-					email: user.email || '',
-					currency: 'INR',
-				})
+			// ✅ We fetch data specifically for our Demo ID
+			const { data, error } = await supabase.from('profiles').select('full_name').eq('id', DEMO_USER_ID).single()
+
+			if (data) {
+				setFormData((prev) => ({
+					...prev,
+					full_name: data.full_name || '',
+				}))
 			}
 			setLoading(false)
 		}
@@ -40,23 +41,20 @@ export default function ProfilePage() {
 		setSaving(true)
 		setMessage({ type: '', text: '' })
 
-		const {
-			data: { user },
-		} = await supabase.auth.getUser()
+		// ✅ We UPSERT using the Demo ID directly
+		const { error } = await supabase.from('profiles').upsert({
+			id: DEMO_USER_ID,
+			full_name: formData.full_name,
+			updated_at: new Date().toISOString(),
+		})
 
-		if (user) {
-			const { error } = await supabase.from('profiles').upsert({
-				id: user.id,
-				full_name: formData.full_name,
-				updated_at: new Date().toISOString(),
-			})
-
-			if (error) {
-				setMessage({ type: 'error', text: 'Failed to update profile.' })
-			} else {
-				setMessage({ type: 'success', text: 'Changes saved! Realtime sync active. ✨' })
-				// router.refresh() // Optional: syncs server-side components
-			}
+		if (error) {
+			console.error('Supabase Error:', error.message)
+			setMessage({ type: 'error', text: 'Failed to update profile.' })
+		} else {
+			setMessage({ type: 'success', text: 'Changes saved! Realtime sync active. ✨' })
+			// ✅ Hard refresh to force the Sidebar (ClientShell) to update
+			setTimeout(() => window.location.reload(), 800)
 		}
 		setSaving(false)
 	}
@@ -71,27 +69,27 @@ export default function ProfilePage() {
 	return (
 		<div className="max-w-5xl mx-auto animate-in fade-in duration-500">
 			<header className="mb-10">
-				<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-slate-200 to-slate-500 bg-clip-text text-transparent">
+				<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-slate-200 to-slate-500 bg-clip-text text-transparent leading-tight">
 					Account Settings
 				</h1>
 				<p className="text-slate-500 mt-2 font-medium italic text-sm">Manage your identity and preferences.</p>
 			</header>
 
 			<div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-				{/* 🧭 Nav Sidebar */}
+				{/* Navigation Sidebar */}
 				<div className="lg:col-span-3 space-y-2">
 					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold bg-blue-600/10 text-blue-400 border border-blue-500/20 rounded-xl transition-all">
 						<User size={18} /> Public Profile
 					</button>
-					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all">
+					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all cursor-not-allowed">
 						<Shield size={18} /> Security
 					</button>
-					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all">
+					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all cursor-not-allowed">
 						<Bell size={18} /> Notifications
 					</button>
 				</div>
 
-				{/* 📝 Form Section */}
+				{/* Main Form Section */}
 				<div className="lg:col-span-9">
 					<form onSubmit={handleUpdate} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-md">
 						<div className="p-8 space-y-8">
@@ -116,7 +114,7 @@ export default function ProfilePage() {
 								</div>
 
 								<div className="space-y-3">
-									<label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email (Primary)</label>
+									<label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email (Demo Mode)</label>
 									<div className="relative">
 										<Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
 										<input
