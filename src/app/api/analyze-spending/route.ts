@@ -1,44 +1,32 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import { NextResponse } from 'next/server'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+// The new SDK uses a slightly different initialization
+const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 export async function POST(req: Request) {
 	try {
 		const { income, expenses } = await req.json()
 
-		// FIX: Use the specific model name format expected by the SDK
-		// If 'gemini-1.5-flash' fails, try 'gemini-1.5-flash-latest'
-		const model = genAI.getGenerativeModel({
-			model: 'gemini-1.5-flash',
-		})
+		// Gemini 2.5 Flash is the 2026 standard for cost-efficient AI
+		const model = 'gemini-2.5-flash'
 
 		const prompt = `
-      You are FinMentor AI, a smart financial coach for students. 
-      Analyze these expenses: ${JSON.stringify(expenses)}
+      You are FinMentor AI, a slightly sarcastic financial coach for students. 
+      Review these expenses: ${JSON.stringify(expenses)}
       Income: ${income}
-      Provide: 1. A Roast/Toast, 2. Top overspending categories, 3. 3 Challenges, 4. 1-year SIP value.
-      Use Markdown and Emojis.
+      Provide: 1. A Roast, 2. Overspending categories, 3. 3 Challenges, 4. SIP Projection.
     `
 
-		// Add a timeout or explicit error handling for the fetch itself
-		const result = await model.generateContent(prompt)
-		const response = await result.response
-		const text = response.text()
+		// New SDK method: client.models.generate_content
+		const response = await client.models.generateContent({
+			model: model,
+			contents: [{ role: 'user', parts: [{ text: prompt }] }],
+		})
 
-		if (!text) throw new Error('Empty response from AI')
-
-		return NextResponse.json({ advice: text })
+		return NextResponse.json({ advice: response.text })
 	} catch (error: any) {
 		console.error('AI Analysis Error:', error)
-
-		// Detailed error logging for Vercel
-		return NextResponse.json(
-			{
-				error: 'AI Coach is temporarily offline.',
-				details: error.message,
-			},
-			{ status: 500 },
-		)
+		return NextResponse.json({ error: 'AI Coach is recalibrating. Try again!' }, { status: 500 })
 	}
 }
