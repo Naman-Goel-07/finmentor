@@ -14,9 +14,9 @@ export default function AddExpenseModal() {
 	const [error, setError] = useState('')
 	const router = useRouter()
 
-	// Shared Tailwind classes for the black input style
+	// UPDATED: Changed bg-black to bg-white and text-white to text-black
 	const inputClasses =
-		'w-full px-3 py-2 bg-black text-white border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder-gray-500'
+		'w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder-gray-400 font-medium'
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -87,12 +87,13 @@ export default function AddExpenseModal() {
 							<div>
 								<label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
 								<select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClasses}>
-									<option className="bg-black text-white">Food</option>
-									<option className="bg-black text-white">Travel</option>
-									<option className="bg-black text-white">Shopping</option>
-									<option className="bg-black text-white">Subscriptions</option>
-									<option className="bg-black text-white">Bills</option>
-									<option className="bg-black text-white">Other</option>
+									{/* UPDATED: Removed bg-black/text-white from options */}
+									<option>Food</option>
+									<option>Travel</option>
+									<option>Shopping</option>
+									<option>Subscriptions</option>
+									<option>Bills</option>
+									<option>Other</option>
 								</select>
 							</div>
 
