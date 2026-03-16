@@ -1,6 +1,6 @@
 import supabase from '@/lib/supabaseClient'
 import DashboardCharts from '@/components/DashboardCharts'
-import { AlertCircle, ArrowUpRight, IndianRupee, Activity } from 'lucide-react'
+import { AlertCircle, ArrowUpRight, IndianRupee, Activity, Plus } from 'lucide-react'
 import Link from 'next/link'
 import AddExpenseModal from '@/components/AddExpenseModal'
 
@@ -28,83 +28,89 @@ export default async function DashboardPage() {
 
 	return (
 		<div>
+			{/* ✅ HEADER: Gradient Title + Themed Button */}
 			<header className="mb-8 flex justify-between items-center break-words">
 				<div>
-					<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent leading-tight">
 						Dashboard Overview
 					</h1>
-					<p className="text-gray-500 mt-1 font-medium">Here&apos;s what&apos;s happening with your money.</p>
+					<p className="text-slate-400 mt-2 font-medium">Here&apos;s what&apos;s happening with your money.</p>
 				</div>
-				<AddExpenseModal />
+
+				<div className="shrink-0">
+					<AddExpenseModal />
+					{/* Note: Ensure the trigger inside AddExpenseModal matches the Blue Gradient style */}
+				</div>
 			</header>
 
 			{dbError && (
-				<div className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-6 mb-8 flex items-start shadow-sm">
-					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 mt-0.5 text-red-600" />
+				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-start shadow-lg">
+					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 mt-0.5" />
 					<div>
-						<h3 className="font-semibold text-red-900">Database Error</h3>
-						<p className="mt-1 text-sm">{dbError}</p>
+						<h3 className="font-bold text-red-200">Database Connection Error</h3>
+						<p className="mt-1 text-sm opacity-80">{dbError}</p>
 					</div>
 				</div>
 			)}
 
-			{/* KPI Cards */}
+			{/* ✅ KPI CARDS: Dark Slate Theme */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-				<div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between">
+				<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm">
 					<div>
-						<p className="text-sm font-medium text-gray-500 mb-1">Total Spent</p>
-						<h3 className="text-3xl font-bold text-gray-900">₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+						<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Spent</p>
+						<h3 className="text-3xl font-bold text-white">₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
 					</div>
-					<div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+					<div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center border border-blue-500/20">
 						<IndianRupee size={24} />
 					</div>
 				</div>
 
-				<div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between">
+				<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm">
 					<div>
-						<p className="text-sm font-medium text-gray-500 mb-1">Transactions</p>
-						<h3 className="text-3xl font-bold text-gray-900">{totalTransactions}</h3>
+						<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Transactions</p>
+						<h3 className="text-3xl font-bold text-white">{totalTransactions}</h3>
 					</div>
-					<div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+					<div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/20">
 						<Activity size={24} />
 					</div>
 				</div>
 
-				<div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-					<Link href="/expenses" className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2">
-						View all expenses <ArrowUpRight size={18} />
+				<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex flex-col justify-center items-center backdrop-blur-sm hover:bg-slate-900/80 transition-all group">
+					<Link href="/expenses" className="text-blue-400 group-hover:text-blue-300 font-bold flex items-center gap-2 transition-colors">
+						View all records <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
 					</Link>
 				</div>
 			</div>
 
 			<DashboardCharts expenses={expenses} />
 
-			{/* Recent Expenses List */}
-			<div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-				<div className="p-6 border-b border-gray-100 flex justify-between items-center">
-					<h3 className="text-lg font-bold text-gray-800">Recent Transactions</h3>
-					<Link href="/expenses" className="text-blue-600 text-sm font-medium">
+			{/* ✅ RECENT TRANSACTIONS: Dark List */}
+			<div className="mt-8 bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
+				<div className="p-6 border-b border-slate-800/60 flex justify-between items-center">
+					<h3 className="text-lg font-bold text-white">Recent Transactions</h3>
+					<Link href="/expenses" className="text-blue-400 text-sm font-bold hover:underline">
 						See all
 					</Link>
 				</div>
 
-				<div className="p-0">
+				<div>
 					{recentExpenses.length > 0 ? (
-						<div className="divide-y divide-gray-50">
+						<div className="divide-y divide-slate-800/40">
 							{recentExpenses.map((exp, idx) => (
-								<div key={idx} className="p-4 px-6 flex justify-between items-center hover:bg-gray-50 transition-colors">
+								<div key={idx} className="p-4 px-8 flex justify-between items-center hover:bg-slate-800/30 transition-colors">
 									<div className="flex flex-col">
-										<span className="font-medium text-gray-900">{exp.category}</span>
-										<span className="text-sm text-gray-500">
-											{exp.note || 'No description'} &bull; {new Date(exp.date).toLocaleDateString()}
+										<span className="font-bold text-slate-100">{exp.category}</span>
+										<span className="text-xs font-medium text-slate-500 mt-0.5">
+											{exp.note || 'No description'} &bull;{' '}
+											{new Date(exp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
 										</span>
 									</div>
-									<span className="font-bold text-gray-900">₹{exp.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+									<span className="font-extrabold text-white">₹{exp.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
 								</div>
 							))}
 						</div>
 					) : (
-						<div className="p-8 text-center text-gray-500">No transactions recorded yet.</div>
+						<div className="p-12 text-center text-slate-500 font-medium">No transactions recorded yet.</div>
 					)}
 				</div>
 			</div>
