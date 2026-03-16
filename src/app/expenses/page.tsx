@@ -26,7 +26,7 @@ export default async function ExpensesPage() {
 	const isEmptyDatabase = expenses.length === 0 && !dbError
 
 	return (
-		<div className="max-w-5xl mx-auto w-full">
+		<div>
 			<header className="mb-8 flex justify-between items-center">
 				<div>
 					<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">

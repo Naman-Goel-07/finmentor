@@ -43,7 +43,7 @@ export default async function GoalsPage() {
 	const isEmptyDatabase = goals.length === 0 && !dbError
 
 	return (
-		<div className="max-w-5xl mx-auto w-full px-4 py-8">
+		<div>
 			<header className="mb-8">
 				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
 					Savings Goals
