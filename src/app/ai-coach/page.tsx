@@ -53,7 +53,7 @@ export default function AICoachPage() {
 	}
 
 	return (
-		<div className="max-w-4xl mx-auto w-full px-4 py-8">
+		<div>
 			<header className="mb-8">
 				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
 					AI Coach
