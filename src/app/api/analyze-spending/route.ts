@@ -1,7 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import { NextResponse } from 'next/server'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+// 1. Use the new 2026 SDK Class
+const client = new GoogleGenAI({
+	apiKey: process.env.GEMINI_API_KEY || '',
+})
 
 export async function POST(req: Request) {
 	try {
@@ -11,11 +14,9 @@ export async function POST(req: Request) {
 			return NextResponse.json({ error: 'API Key missing on Vercel' }, { status: 500 })
 		}
 
-		// 1. Setup Models (Gemini 3 Flash is the 2026 workhorse)
-		const modelId = 'gemini-3-flash-preview'
+		// 2. Setup Models (Gemini 3 Flash is the 2026 standard)
+		const modelId = 'gemini-3-flash'
 		const fallbackId = 'gemini-2.5-flash'
-
-		let model = genAI.getGenerativeModel({ model: modelId })
 
 		const prompt = `
       You are FinMentor AI, a smart financial coach for students. 
@@ -31,18 +32,23 @@ export async function POST(req: Request) {
       Tone: Gen-Z friendly, conversational, use emojis. Format in Markdown.
     `
 
-		// 2. Try generating content with Fallback logic
+		// 3. Try generating content with the new SDK syntax
 		let result
 		try {
-			result = await model.generateContent(prompt)
+			result = await client.models.generateContent({
+				model: modelId,
+				contents: [{ role: 'user', parts: [{ text: prompt }] }],
+			})
 		} catch (e) {
 			console.warn(`Model ${modelId} failed, trying fallback ${fallbackId}`)
-			model = genAI.getGenerativeModel({ model: fallbackId })
-			result = await model.generateContent(prompt)
+			result = await client.models.generateContent({
+				model: fallbackId,
+				contents: [{ role: 'user', parts: [{ text: prompt }] }],
+			})
 		}
 
-		const text = result.response.text()
-		return NextResponse.json({ advice: text })
+		// 4. Return the text directly from the result object
+		return NextResponse.json({ advice: result.text })
 	} catch (error: any) {
 		console.error('AI Analysis Error:', error)
 		return NextResponse.json(
