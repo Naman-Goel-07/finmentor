@@ -21,7 +21,6 @@ export default function ProfilePage() {
 
 	useEffect(() => {
 		async function fetchProfile() {
-			// ✅ Fetch both Name and Email for the Demo ID
 			const { data, error } = await supabase.from('profiles').select('full_name, email').eq('id', DEMO_USER_ID).single()
 
 			if (data) {
@@ -40,12 +39,11 @@ export default function ProfilePage() {
 		setSaving(true)
 		setMessage({ type: '', text: '' })
 
-		// ✅ Upsert both Name and Email
+		// ✅ FIXED: Removed updated_at so it doesn't crash your database
 		const { error } = await supabase.from('profiles').upsert({
 			id: DEMO_USER_ID,
 			full_name: formData.full_name,
 			email: formData.email,
-			updated_at: new Date().toISOString(),
 		})
 
 		if (error) {
@@ -53,7 +51,7 @@ export default function ProfilePage() {
 			setMessage({ type: 'error', text: 'Failed to update profile.' })
 		} else {
 			setMessage({ type: 'success', text: 'Changes saved! Realtime sync active. ✨' })
-			// ✅ Sync the Sidebar and Header
+			// ✅ Hard refresh to sync the Sidebar and Header
 			setTimeout(() => window.location.reload(), 800)
 		}
 		setSaving(false)
@@ -76,7 +74,6 @@ export default function ProfilePage() {
 			</header>
 
 			<div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-				{/* Navigation Sidebar */}
 				<div className="lg:col-span-3 space-y-2">
 					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold bg-blue-600/10 text-blue-400 border border-blue-500/20 rounded-xl transition-all">
 						<User size={18} /> Public Profile
@@ -89,7 +86,6 @@ export default function ProfilePage() {
 					</button>
 				</div>
 
-				{/* Main Form Section */}
 				<div className="lg:col-span-9">
 					<form onSubmit={handleUpdate} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-md">
 						<div className="p-8 space-y-8">
@@ -102,7 +98,6 @@ export default function ProfilePage() {
 							)}
 
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-								{/* NAME INPUT */}
 								<div className="space-y-3">
 									<label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
 									<input
@@ -114,7 +109,6 @@ export default function ProfilePage() {
 									/>
 								</div>
 
-								{/* EMAIL INPUT - NOW EDITABLE */}
 								<div className="space-y-3">
 									<label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
 									<div className="relative">
@@ -131,7 +125,6 @@ export default function ProfilePage() {
 							</div>
 						</div>
 
-						{/* Footer / Save Button */}
 						<div className="p-6 bg-slate-950/50 border-t border-slate-800/60 flex justify-end">
 							<button
 								type="submit"
