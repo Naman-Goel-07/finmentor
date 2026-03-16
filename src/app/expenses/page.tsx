@@ -27,24 +27,29 @@ export default async function ExpensesPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500">
+			{/* ✅ HEADER: Standardized Font & Button Alignment */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent leading-tight">
 						Expenses
 					</h1>
 					<p className="text-slate-400 mt-2 font-medium italic">Manage and track your financial records.</p>
 				</div>
-				<AddExpenseModal />
+
+				{/* Ensure the button inside AddExpenseModal uses the Neutral Gray style */}
+				<div className="shrink-0">
+					<AddExpenseModal />
+				</div>
 			</header>
 
-			{/* ERROR STATES: Updated for Dark Theme */}
+			{/* ERROR STATES: Themed for Dark Mode */}
 			{isMissingSupabase && (
 				<div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 rounded-2xl p-6 mb-8 flex items-start shadow-lg">
 					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 mt-0.5 text-amber-500" />
 					<div>
 						<h3 className="font-bold text-amber-100">Setup Required</h3>
 						<p className="mt-1 text-sm opacity-80">
-							Please configure Supabase API keys in <code className="bg-slate-800 px-1 rounded">.env.local</code>.
+							Please configure Supabase API keys in <code className="bg-slate-800 px-1 rounded text-white">.env.local</code>.
 						</p>
 					</div>
 				</div>
@@ -67,8 +72,8 @@ export default async function ExpensesPage() {
 						<div className="bg-slate-800 p-6 rounded-full mb-6">
 							<Plus size={40} className="text-slate-500" />
 						</div>
-						<h3 className="text-2xl font-bold text-white mb-2">No expenses yet</h3>
-						<p className="text-slate-400 max-w-sm mb-8 font-medium">Your database is empty. Add your first transaction to see it here.</p>
+						<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">No expenses yet</h3>
+						<p className="text-slate-400 max-w-sm mb-8 font-medium italic">Your database is empty. Add your first transaction to see it here.</p>
 						<AddExpenseModal />
 					</div>
 				) : (
