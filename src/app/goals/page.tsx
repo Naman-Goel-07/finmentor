@@ -12,7 +12,6 @@ export default async function GoalsPage() {
 	let dbError = null
 
 	if (hasSupabaseUrl) {
-		// 1. Fetch Goals
 		const { data: goalsData, error: goalsError } = await supabase.from('goals').select('*').order('deadline', { ascending: true })
 
 		if (goalsError) {
@@ -21,11 +20,13 @@ export default async function GoalsPage() {
 			const activeGoals = goalsData.filter((g: any) => g.is_archived !== true)
 
 			try {
-				// 2. Fetch History (using the exact table name: goal_savings)
-				const { data: savingsData, error: savingsError } = await supabase.from('goal_savings').select('*').order('created_at', { ascending: false })
+				const { data: savingsData, error: savingsError } = await supabase
+					.from('goal_contributions')
+					.select('*')
+					.order('created_at', { ascending: false })
 
 				if (!savingsError && savingsData) {
-					// 3. Match keys: Use 'goal_savings' as the key name for GoalCard
+					// Keep the key as 'goal_savings' because your GoalCard expects that name
 					goals = activeGoals.map((g) => ({
 						...g,
 						goal_savings: savingsData.filter((s) => s.goal_id === g.id),

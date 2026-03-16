@@ -3,7 +3,7 @@ import supabase from '@/lib/supabaseClient'
 export async function POST(req: Request) {
 	try {
 		const body = await req.json()
-		const { id, amountToAdd } = body
+		const { id, amountToAdd, note } = body // Added 'note' from the request body
 
 		// 1. Validation
 		if (!id || amountToAdd === undefined) {
@@ -26,20 +26,21 @@ export async function POST(req: Request) {
 			return Response.json({ error: 'Failed to update goal: ' + updateError.message }, { status: 500 })
 		}
 
-		// 4. Record the history entry
-		// We await this to ensure the record is created before returning success
-		const { error: historyError } = await supabase.from('goal_savings').insert([
-			{
-				goal_id: id,
-				amount: Number(amountToAdd),
-				note: 'Quick save',
-			},
-		])
+		// 4. Record the history entry - MATCHING YOUR SCREENSHOT TABLE NAME
+		const { error: historyError } = await supabase
+			.from('goal_contributions') // CHANGED THIS from goal_savings
+			.insert([
+				{
+					goal_id: id,
+					amount: Number(amountToAdd),
+					note: note || 'Quick save', // Now uses the note passed from your modal
+				},
+			])
 
 		if (historyError) {
-			// Note: In a production app, you might want to rollback the goal update here,
-			// but for a hackathon, a simple console.error is usually enough.
 			console.error('History recording failed:', historyError.message)
+			// If this fails, the history won't show up on the frontend.
+			return Response.json({ error: 'Balance updated but history failed: ' + historyError.message }, { status: 500 })
 		}
 
 		return Response.json({
