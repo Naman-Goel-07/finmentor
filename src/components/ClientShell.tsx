@@ -6,6 +6,9 @@ import { Menu, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import supabase from '@/lib/supabaseClient'
 
+// ✅ Match the ID you used in the SQL and Profile Page
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
+
 export default function ClientShell({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [profileOpen, setProfileOpen] = useState(false)
@@ -15,44 +18,37 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		let channel: any
 
 		async function getProfile() {
-			// 1. Get current session/user
-			const { data: authData } = await supabase.auth.getUser()
-			const user = authData?.user
+			// 1. Fetch the profile directly using the Demo ID (no auth check needed)
+			const { data: profileData, error } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', DEMO_USER_ID).single()
 
-			if (user) {
-				// 2. Initial Fetch with defensive check
-				const { data: profileData } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).single()
-
-				if (profileData) {
-					setProfile({
-						name: profileData.full_name || '',
-						avatar: profileData.avatar_url || '',
-					})
-				}
-
-				// 3. ✅ REALTIME (With safety checks)
-				channel = supabase
-					.channel(`profile-${user.id}`) // Unique channel per user
-					.on(
-						'postgres_changes',
-						{
-							event: 'UPDATE',
-							schema: 'public',
-							table: 'profiles',
-							filter: `id=eq.${user.id}`,
-						},
-						(payload) => {
-							// Ensure payload.new exists before updating state
-							if (payload?.new) {
-								setProfile({
-									name: payload.new.full_name || '',
-									avatar: payload.new.avatar_url || '',
-								})
-							}
-						},
-					)
-					.subscribe()
+			if (profileData) {
+				setProfile({
+					name: profileData.full_name || '',
+					avatar: profileData.avatar_url || '',
+				})
 			}
+
+			// 2. ✅ REALTIME: Still works! Listen for changes to the Demo ID
+			channel = supabase
+				.channel(`profile-demo`)
+				.on(
+					'postgres_changes',
+					{
+						event: 'UPDATE',
+						schema: 'public',
+						table: 'profiles',
+						filter: `id=eq.${DEMO_USER_ID}`,
+					},
+					(payload) => {
+						if (payload?.new) {
+							setProfile({
+								name: payload.new.full_name || '',
+								avatar: payload.new.avatar_url || '',
+							})
+						}
+					},
+				)
+				.subscribe()
 		}
 
 		getProfile()
@@ -69,6 +65,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={profile} />
 
 			<div className="flex-1 flex flex-col h-screen overflow-hidden">
+				{/* HEADER */}
 				<header className="bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/60 h-16 flex items-center shrink-0 z-30">
 					<div className="max-w-6xl mx-auto w-full px-4 md:px-8 flex items-center justify-between">
 						<div className="flex items-center gap-3">
@@ -101,7 +98,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 									<div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
 									<div className="absolute right-0 mt-2 w-56 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 p-1.5 z-20 animate-in fade-in zoom-in duration-200">
 										<div className="px-3 py-2 border-b border-slate-800 mb-1">
-											<p className="text-sm font-bold text-white truncate">{profile.name || 'FinMentor User'}</p>
+											<p className="text-sm font-bold text-white truncate">{profile.name || 'Demo User'}</p>
 										</div>
 										<Link
 											href="/profile"
@@ -110,23 +107,13 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 										>
 											<User size={16} /> Profile Settings
 										</Link>
-										<Link
-											href="/profile"
-											className="flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
-											onClick={() => setProfileOpen(false)}
-										>
-											<Settings size={16} /> App Settings
-										</Link>
 										<div className="h-px bg-slate-800 my-1 mx-2" />
-										<button
-											onClick={async () => {
-												await supabase.auth.signOut()
-												window.location.href = '/login'
-											}}
+										<Link
+											href="/"
 											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
 										>
-											<LogOut size={16} /> Logout
-										</button>
+											<LogOut size={16} /> Reset Demo
+										</Link>
 									</div>
 								</>
 							)}
