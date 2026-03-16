@@ -54,17 +54,11 @@ export default function AICoachPage() {
 
 	return (
 		<div className="max-w-4xl mx-auto w-full px-4 py-8">
-			{/* Header Section */}
-			<header className="mb-10">
-				<div className="flex items-center gap-3 mb-2">
-					<div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-						<Sparkles size={28} />
-					</div>
-					<h1 className="text-4xl font-black tracking-tight text-gray-900">AI Coach</h1>
-				</div>
-				<p className="text-gray-500 text-lg">
-					Personalized financial intervention by <span className="font-semibold text-indigo-600">Gemini 1.5 Flash</span>.
-				</p>
+			<header className="mb-8">
+				<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+					AI Coach
+				</h1>
+				<p className="text-gray-500 mt-1 font-medium">Personalized financial intervention by Gemini 1.5 Flash.</p>
 			</header>
 
 			{/* Action Card */}

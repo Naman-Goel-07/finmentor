@@ -30,8 +30,10 @@ export default async function DashboardPage() {
 		<div className="max-w-6xl mx-auto w-full px-4 py-8">
 			<header className="mb-8 flex justify-between items-center break-words">
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard Overview</h1>
-					<p className="text-gray-500 mt-1">Here&apos;s what&apos;s happening with your money.</p>
+					<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+						Dashboard Overview
+					</h1>
+					<p className="text-gray-500 mt-1 font-medium">Here&apos;s what&apos;s happening with your money.</p>
 				</div>
 				<AddExpenseModal />
 			</header>

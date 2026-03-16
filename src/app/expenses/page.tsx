@@ -29,8 +29,10 @@ export default async function ExpensesPage() {
 		<div className="max-w-5xl mx-auto w-full">
 			<header className="mb-8 flex justify-between items-center">
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight text-gray-900">Expenses</h1>
-					<p className="text-gray-500 mt-1">Manage and track your financial records.</p>
+					<h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+						Expenses
+					</h1>
+					<p className="text-gray-500 mt-1 font-medium">Manage and track your financial records.</p>
 				</div>
 				<AddExpenseModal />
 			</header>
