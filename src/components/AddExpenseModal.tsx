@@ -80,7 +80,7 @@ export default function AddExpenseModal() {
 									value={amount}
 									onChange={(e) => setAmount(e.target.value)}
 									className={inputClasses}
-									placeholder="0.00"
+									placeholder="₹0.00"
 								/>
 							</div>
 

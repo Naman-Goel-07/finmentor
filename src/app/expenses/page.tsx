@@ -98,7 +98,7 @@ export default async function ExpensesPage() {
                         {expense.note || <span className="italic text-gray-400">No note</span>}
                       </td>
                       <td className="py-4 px-6 text-right font-medium text-gray-900">
-                        ${expense.amount.toFixed(2)}
+                        ${expense.amount.toLocaleString('en-IN')}
                       </td>
                     </tr>
                   ))}

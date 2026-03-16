@@ -98,7 +98,7 @@ export default function AddGoalModal() {
 									value={targetAmount}
 									onChange={(e) => setTargetAmount(e.target.value)}
 									className={inputClasses}
-									placeholder="0.00"
+									placeholder="₹0.00"
 								/>
 							</div>
 
@@ -110,7 +110,7 @@ export default function AddGoalModal() {
 									value={savedAmount}
 									onChange={(e) => setSavedAmount(e.target.value)}
 									className={inputClasses}
-									placeholder="0.00"
+									placeholder="₹0.00"
 								/>
 							</div>
 
