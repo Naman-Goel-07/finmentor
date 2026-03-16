@@ -43,14 +43,19 @@ export default async function GoalsPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500">
+			{/* ✅ HEADER: Standardized Font & Button Alignment */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent leading-tight">
 						Savings Goals
 					</h1>
 					<p className="text-slate-400 mt-2 font-medium italic">Track your progress towards your financial objectives.</p>
 				</div>
-				<AddGoalModal />
+
+				{/* The AddGoalModal contains the neutral gray button trigger */}
+				<div className="shrink-0">
+					<AddGoalModal />
+				</div>
 			</header>
 
 			{/* Error State: Updated for Dark Theme */}
@@ -70,8 +75,8 @@ export default async function GoalsPage() {
 					<div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
 						<Target className="text-amber-500" size={40} />
 					</div>
-					<h3 className="text-2xl font-bold text-white mb-2">No goals yet</h3>
-					<p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium">
+					<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">No goals yet</h3>
+					<p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium italic">
 						Set your first savings target—whether it's for a new gadget, a trip, or an emergency fund.
 					</p>
 					<AddGoalModal />
