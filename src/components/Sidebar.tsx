@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import Link from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import clsx from 'clsx'
 
 const navItems = [
@@ -16,32 +16,39 @@ const navItems = [
 
 export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIsOpen?: (val: boolean) => void }) {
 	const pathname = usePathname()
-	const [isCollapsed, setIsCollapsed] = useState(false) // ✅ Folding state
+	const [isCollapsed, setIsCollapsed] = useState(false)
 
 	return (
 		<div
 			className={clsx(
-				// Background & Border updated to match Global Dark theme
 				'bg-[#020617] border-r border-slate-800/60 min-h-screen flex flex-col relative z-50 transition-all duration-300 ease-in-out md:static',
 				'fixed inset-y-0 left-0 transform',
 				isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-				// Width toggle logic
 				isCollapsed ? 'md:w-20' : 'md:w-64 w-64',
 			)}
 		>
-			{/* 🔝 LOGO SECTION */}
-			<div className="flex justify-between items-center h-16 px-6 border-b border-slate-800/60">
-				{!isCollapsed && (
-					<div className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent italic tracking-tighter">
-						FinMentor AI
-					</div>
-				)}
-				{isCollapsed && <div className="font-black text-blue-500 text-xl mx-auto">F</div>}
+			{/* 🔝 HEADER SECTION (Logo + Collapse Toggle) */}
+			<div className="flex items-center justify-between h-16 px-4 border-b border-slate-800/60">
+				<div className="flex items-center gap-3 overflow-hidden">
+					{!isCollapsed && (
+						<div className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent tracking-tighter whitespace-nowrap ml-2">
+							FinMentor AI
+						</div>
+					)}
+					{isCollapsed && <div className="font-black text-blue-500 text-xl mx-auto">F</div>}
+				</div>
 
+				{/* ✅ Collapse Toggle moved to the top */}
 				<button
-					onClick={() => setIsOpen && setIsOpen(false)}
-					className="md:hidden text-slate-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+					onClick={() => setIsCollapsed(!isCollapsed)}
+					className="hidden md:flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer"
+					title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
 				>
+					{isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+				</button>
+
+				{/* Mobile Close Button */}
+				<button onClick={() => setIsOpen && setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white p-2">
 					<X size={24} />
 				</button>
 			</div>
@@ -54,7 +61,6 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 						<Link
 							key={item.name}
 							href={item.href}
-							onClick={() => setIsOpen && setIsOpen(false)}
 							className={clsx(
 								'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative',
 								isActive
@@ -77,21 +83,19 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 				})}
 			</nav>
 
-			{/* 🛠️ COLLAPSE TOGGLE (Desktop Only) */}
-			<div className="p-4 border-t border-slate-800/60 hidden md:block">
-				<button
-					onClick={() => setIsCollapsed(!isCollapsed)}
-					className="w-full flex items-center justify-center p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/60 hover:bg-slate-800 transition-all text-slate-400 hover:text-white"
-				>
-					{isCollapsed ? (
-						<ChevronRight size={20} />
-					) : (
-						<div className="flex items-center gap-2">
-							<ChevronLeft size={18} />
-							<span className="text-xs font-bold uppercase tracking-widest">Collapse</span>
+			{/* FOOTER (Optional - Cleaned up) */}
+			<div className="p-4 border-t border-slate-800/60">
+				<div className={clsx('flex items-center gap-3 px-3 py-2', isCollapsed ? 'justify-center' : '')}>
+					<div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+						NG
+					</div>
+					{!isCollapsed && (
+						<div className="overflow-hidden">
+							<p className="text-xs font-bold text-slate-200 truncate">Naman Goel</p>
+							<p className="text-[10px] text-slate-500 truncate">Pro Plan</p>
 						</div>
 					)}
-				</button>
+				</div>
 			</div>
 		</div>
 	)
