@@ -27,17 +27,14 @@ export default async function ExpensesPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500">
-			{/* ✅ HEADER: Emerald Gradient + Uniform Button */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent leading-tight">
+					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
 						Expenses
 					</h1>
-					<p className="text-slate-400 mt-2 font-medium">Manage and track your financial records.</p>
+					<p className="text-slate-400 mt-2 font-medium italic">Manage and track your financial records.</p>
 				</div>
-				<div className="shrink-0">
-					<AddExpenseModal />
-				</div>
+				<AddExpenseModal />
 			</header>
 
 			{/* ERROR STATES: Updated for Dark Theme */}

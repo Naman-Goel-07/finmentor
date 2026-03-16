@@ -56,7 +56,7 @@ export default function AddGoalModal() {
 		<>
 			<button
 				onClick={() => setIsOpen(true)}
-				className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer min-h-[44px]"
+				className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
 			>
 				<Plus size={20} />
 				New Goal

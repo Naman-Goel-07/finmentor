@@ -28,19 +28,14 @@ export default async function DashboardPage() {
 
 	return (
 		<div>
-			{/* ✅ HEADER: Gradient Title + Themed Button */}
-			<header className="mb-8 flex justify-between items-center break-words">
+			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent leading-tight">
+					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent">
 						Dashboard Overview
 					</h1>
-					<p className="text-slate-400 mt-2 font-medium">Here&apos;s what&apos;s happening with your money.</p>
+					<p className="text-slate-400 mt-2 font-medium italic">Here&apos;s what&apos;s happening with your money.</p>
 				</div>
-
-				<div className="shrink-0">
-					<AddExpenseModal />
-					{/* Note: Ensure the trigger inside AddExpenseModal matches the Blue Gradient style */}
-				</div>
+				<AddExpenseModal />
 			</header>
 
 			{dbError && (
