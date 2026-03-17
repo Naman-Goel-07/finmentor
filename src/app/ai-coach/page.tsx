@@ -132,28 +132,28 @@ export default function AICoachPage() {
 						<div className="prose prose-indigo max-w-none">
 							<ReactMarkdown
 								components={{
-									// FORCE BLACK ON ALL HEADERS
 									h1: ({ ...props }) => (
 										<h1 className="text-2xl font-black mb-6 flex items-center gap-2 border-b pb-4 text-black !opacity-100" {...props} />
 									),
 									h2: ({ ...props }) => <h2 className="text-xl font-bold mt-8 mb-4 text-black !opacity-100" {...props} />,
 									h3: ({ ...props }) => <h3 className="text-lg font-bold mt-6 mb-2 text-black !opacity-100" {...props} />,
 
-									// FORCE BLACK ON PARAGRAPHS
-									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4 font-medium" {...props} />,
+									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4 font-medium !opacity-100" {...props} />,
 
 									ul: ({ ...props }) => <ul className="space-y-3 my-4 list-none pl-0" {...props} />,
+									ol: ({ ...props }) => <ol className="space-y-3 my-4 list-decimal pl-5 text-black font-bold" {...props} />, // Added OL for numbered lists
+
 									li: ({ ...props }) => (
 										<li className="flex items-start gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100" {...props}>
 											<ChevronRight size={18} className="mt-1 text-indigo-500 flex-shrink-0" />
-											<span className="text-black font-semibold">{props.children}</span>
+											<span className="text-black font-semibold !opacity-100">{props.children}</span>
 										</li>
 									),
 
-									// HIGHLIGHT STRONGS
-									strong: ({ ...props }) => <strong className="font-black text-black bg-yellow-100 px-1 rounded-sm" {...props} />,
+									strong: ({ ...props }) => (
+										<strong className="font-black text-black bg-yellow-100 px-1 rounded-sm !opacity-100" {...props} />
+									),
 
-									// STYLE BLOCKQUOTES
 									blockquote: ({ ...props }) => (
 										<div className="bg-slate-900 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500" {...props} />
 									),
