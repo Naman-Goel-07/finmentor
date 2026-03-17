@@ -1,14 +1,19 @@
 'use client'
 
-import { useMemo } from 'react' //
+import { useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { format } from 'date-fns'
 
-export default function GoalSavingsChart({ savings }: { savings: any[] }) {
+interface GoalSavingsChartProps {
+	savings: any[]
+	refreshTrigger?: number // ✅ Added trigger prop
+}
+
+export default function GoalSavingsChart({ savings, refreshTrigger = 0 }: GoalSavingsChartProps) {
 	const chartData = useMemo(() => {
 		if (!savings || savings.length === 0) return []
 
-		// Sort ascending for chronological history
+		// 1. Sort ascending so the line goes left-to-right (Past -> Present)
 		const sortedSavings = [...savings].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
 		let cumulative = 0
@@ -17,7 +22,7 @@ export default function GoalSavingsChart({ savings }: { savings: any[] }) {
 		sortedSavings.forEach((entry) => {
 			const dateStr = format(new Date(entry.created_at), 'MMM dd')
 			cumulative += Number(entry.amount)
-			// Updates the end-of-day total
+			// Updates the end-of-day total for that date
 			dataMap[dateStr] = cumulative
 		})
 
@@ -25,7 +30,9 @@ export default function GoalSavingsChart({ savings }: { savings: any[] }) {
 			date,
 			amount: dataMap[date],
 		}))
-	}, [savings]) // 👈 This dependency is key
+
+		// ✅ Watch both 'savings' and 'refreshTrigger' for changes
+	}, [savings, refreshTrigger])
 
 	if (chartData.length === 0) return null
 
@@ -33,8 +40,8 @@ export default function GoalSavingsChart({ savings }: { savings: any[] }) {
 		<div className="w-full h-48 mt-6">
 			<p className="text-[10px] font-black text-gray-400 mb-3 uppercase tracking-[0.2em]">Savings Progress</p>
 			<ResponsiveContainer width="100%" height="100%">
-				{/* ✅ Adding a 'key' here forces a re-render when the data length changes */}
-				<LineChart key={chartData.length} data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+				{/* ✅ The 'key' forces Recharts to redraw the entire canvas when data changes */}
+				<LineChart key={`chart-${chartData.length}-${refreshTrigger}`} data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
 					<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
 					<XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} dy={10} />
 					<YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} tickFormatter={(value) => `₹${value}`} />
@@ -46,7 +53,7 @@ export default function GoalSavingsChart({ savings }: { savings: any[] }) {
 							fontSize: '12px',
 							fontWeight: 'bold',
 						}}
-						formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Total Saved']}
+						formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Total Saved']}
 					/>
 					<Line
 						type="monotone"
@@ -55,7 +62,7 @@ export default function GoalSavingsChart({ savings }: { savings: any[] }) {
 						strokeWidth={3}
 						dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}
 						activeDot={{ r: 6, strokeWidth: 0 }}
-						animationDuration={800} // Slightly faster for responsiveness
+						animationDuration={800}
 					/>
 				</LineChart>
 			</ResponsiveContainer>
