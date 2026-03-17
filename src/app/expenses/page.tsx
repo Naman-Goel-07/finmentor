@@ -1,6 +1,7 @@
 import { AlertCircle, Plus, Info } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
 import AddExpenseModal from '@/components/AddExpenseModal'
+import DeleteExpenseButton from '@/components/DeleteExpenseButton' // ✅ Import the client component
 
 export const revalidate = 0
 
@@ -27,7 +28,7 @@ export default async function ExpensesPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500">
-			{/* ✅ HEADER: Standardized Font & Button Alignment */}
+			{/* ✅ HEADER */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
 					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent leading-tight">
@@ -36,13 +37,12 @@ export default async function ExpensesPage() {
 					<p className="text-slate-400 mt-2 font-medium italic">Manage and track your financial records.</p>
 				</div>
 
-				{/* Ensure the button inside AddExpenseModal uses the Neutral Gray style */}
 				<div className="shrink-0">
 					<AddExpenseModal />
 				</div>
 			</header>
 
-			{/* ERROR STATES: Themed for Dark Mode */}
+			{/* ERROR STATES */}
 			{isMissingSupabase && (
 				<div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 rounded-2xl p-6 mb-8 flex items-start shadow-lg">
 					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 mt-0.5 text-amber-500" />
@@ -65,7 +65,7 @@ export default async function ExpensesPage() {
 				</div>
 			)}
 
-			{/* ✅ TABLE SECTION: Dark Glass Style */}
+			{/* ✅ TABLE SECTION */}
 			<section className="bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
 				{isEmptyDatabase ? (
 					<div className="flex flex-col items-center justify-center p-20 text-center">
@@ -73,7 +73,7 @@ export default async function ExpensesPage() {
 							<Plus size={40} className="text-slate-500" />
 						</div>
 						<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">No expenses yet</h3>
-						<p className="text-slate-400 max-w-sm mb-8 font-medium italic">Your database is empty. Add your first transaction to see it here.</p>
+						<p className="text-slate-400 max-w-sm mb-8 font-medium italic">Your database is empty.</p>
 						<AddExpenseModal />
 					</div>
 				) : (
@@ -85,6 +85,7 @@ export default async function ExpensesPage() {
 									<th className="py-5 px-8">Category</th>
 									<th className="py-5 px-8">Note</th>
 									<th className="py-5 px-8 text-right">Amount</th>
+									<th className="py-5 px-6 w-16"></th> {/* ✅ Action Column Header */}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-slate-800/40">
@@ -105,6 +106,10 @@ export default async function ExpensesPage() {
 												minimumFractionDigits: 2,
 												maximumFractionDigits: 2,
 											})}
+										</td>
+										{/* ✅ Action Column Cell */}
+										<td className="py-5 px-6 text-right">
+											<DeleteExpenseButton id={expense.id} />
 										</td>
 									</tr>
 								))}
