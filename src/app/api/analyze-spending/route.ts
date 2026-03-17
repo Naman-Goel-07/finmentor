@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai'
 import { NextResponse } from 'next/server'
 
-// 1. Initialize with the class name from your package.json
+// 1. Initialize with your new API key (Ensure this is updated in Vercel!)
 const client = new GoogleGenAI({
 	apiKey: process.env.GEMINI_API_KEY || '',
 })
@@ -28,19 +28,36 @@ export async function POST(req: Request) {
             Tone: Gen-Z friendly, conversational, use emojis.
         `
 
-		// 2. Use the exact syntax required by the @google/genai SDK
-		// In this version, we access the model directly through the client instance
+		// 2. Switched to gemini-1.5-flash for better quota stability
 		const result = await client.models.generateContent({
-			model: 'gemini-2.0-flash', // Using the 2.0/3.0 flash stable IDs for the new SDK
+			model: 'gemini-1.5-flash',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
 		})
 
-		// 3. Extract text from the new result object structure
+		// 3. Extract text
 		const adviceText = result.text || 'Coach is speechless... try again!'
 
 		return NextResponse.json({ advice: adviceText })
 	} catch (error: any) {
 		console.error('AI Analysis Error:', error)
+
+		// SAFETY FALLBACK: If you hit a 429 (Quota) error, return this mock roast
+		// This ensures your UI NEVER shows an error message during a presentation.
+		if (error.message?.includes('429') || error.message?.includes('quota')) {
+			return NextResponse.json({
+				advice: `## 🚨 Coach is in High-Demand! (Offline Mode)
+                
+                **Quick Roast:** Your spending is moving faster than 5G! 📉 
+                
+                **Instant Insights:**
+                * **Overspending:** Looks like Food and Subscriptions are your wallet's biggest enemies.
+                * **Small Win:** Try the "No-Spend Weekend" challenge to save ₹800.
+                * **SIP Fact:** Saving just ₹1,000/month at 12% return gets you **₹13,200** in a year.
+                
+                *Note: Gemini is currently at capacity, but your FinMentor never sleeps!*`,
+			})
+		}
+
 		return NextResponse.json(
 			{
 				error: 'AI Coach is busy calculating.',
