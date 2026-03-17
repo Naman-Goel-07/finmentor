@@ -41,7 +41,14 @@ export default function DashboardCharts({ expenses }: { expenses: any[] }) {
 		const month = d.toLocaleString('en-IN', { month: 'short', year: '2-digit' })
 		monthMap[month] = (monthMap[month] || 0) + e.amount
 	})
-	const monthlyData = Object.keys(monthMap).map((key) => ({ name: key, Total: monthMap[key] }))
+	const monthlyData = Object.keys(monthMap)
+		.map((key) => ({ name: key, Total: monthMap[key] }))
+		// Sorts the Data according to dates
+		.sort((a, b) => {
+			const dateA = new Date(a.name)
+			const dateB = new Date(b.name)
+			return dateA.getTime() - dateB.getTime()
+		})
 
 	const activeData = view === 'daily' ? dailyData : monthlyData
 
