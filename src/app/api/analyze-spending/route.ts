@@ -28,7 +28,7 @@ export async function POST(req: Request) {
             Tone: Gen-Z friendly, conversational, use emojis.
         `
 
-		// 2. Switched to gemini-1.5-flash for better quota stability
+		// 2. Switched to gemini-2.5-flash for better quota stability
 		const result = await client.models.generateContent({
 			model: 'gemini-2.5-flash',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -43,18 +43,22 @@ export async function POST(req: Request) {
 
 		// SAFETY FALLBACK: If you hit a 429 (Quota) error, return this mock roast
 		// This ensures your UI NEVER shows an error message during a presentation.
-		if (error.message?.includes('429') || error.message?.includes('quota')) {
+		if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('404')) {
 			return NextResponse.json({
-				advice: `## 🚨 Coach is in High-Demand! (Offline Mode)
-                
-                **Quick Roast:** Your spending is moving faster than 5G! 📉 
-                
-                **Instant Insights:**
-                * **Overspending:** Looks like Food and Subscriptions are your wallet's biggest enemies.
-                * **Small Win:** Try the "No-Spend Weekend" challenge to save ₹800.
-                * **SIP Fact:** Saving just ₹1,000/month at 12% return gets you **₹13,200** in a year.
-                
-                *Note: Gemini is currently at capacity, but your FinMentor never sleeps!*`,
+				advice: `# 🚨 Coach is in High-Demand!
+
+						## Quick Roast
+						Your spending is moving faster than 5G! 📉 
+
+						## Instant Insights
+						* **Overspending:** Looks like Food and Subscriptions are your wallet's biggest enemies.
+						* **Small Win:** Try the "No-Spend Weekend" challenge to save ₹800.
+
+						## SIP Fact
+						**Saving just ₹1,000/month at 12% return gets you ₹13,200 in a year.**
+
+						---
+						*Note: Gemini is currently at capacity, but your FinMentor never sleeps!*`,
 			})
 		}
 
