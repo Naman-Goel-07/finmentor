@@ -55,6 +55,7 @@ export default async function GoalsPage() {
 				</div>
 			</header>
 
+			{/* Error State */}
 			{dbError && (
 				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-start shadow-lg">
 					<AlertCircle className="w-6 h-6 mr-4 text-red-600 shrink-0" />
@@ -65,6 +66,7 @@ export default async function GoalsPage() {
 				</div>
 			)}
 
+			{/* Empty State */}
 			{isEmptyDatabase ? (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-800/60 p-16 text-center backdrop-blur-sm">
 					<div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
@@ -75,7 +77,8 @@ export default async function GoalsPage() {
 					<AddGoalModal />
 				</section>
 			) : (
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+				/* ✅ Added 'items-start' to prevent adjacent cards from stretching when one expands */
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 					{goals.map((goal) => (
 						<GoalCard key={goal.id} goal={goal} />
 					))}
