@@ -17,7 +17,6 @@ export default function AICoachPage() {
 		setAdvice(null)
 
 		try {
-			// 1. Fetch expenses from Supabase
 			const { data: expenses, error: dbError } = await supabase.from('expenses').select('*').order('date', { ascending: false })
 
 			if (dbError) throw new Error('Database error: ' + dbError.message)
@@ -28,12 +27,11 @@ export default function AICoachPage() {
 
 			setExpenseCount(expenses.length)
 
-			// 2. Send to our API Route
 			const response = await fetch('/api/analyze-spending', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					income: 'Student Budget', // You can make this dynamic later
+					income: 'Student Budget',
 					expenses: expenses,
 				}),
 			})
@@ -53,7 +51,7 @@ export default function AICoachPage() {
 	}
 
 	return (
-		<div>
+		<div className="max-w-4xl mx-auto px-4 py-8">
 			<header className="mb-8">
 				<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
 					AI Coach
@@ -61,7 +59,6 @@ export default function AICoachPage() {
 				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini 1.5 Flash.</p>
 			</header>
 
-			{/* Action Card */}
 			{!advice && !loading && (
 				<div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative">
 					<div className="p-8 md:p-12 text-center relative z-10">
@@ -75,18 +72,16 @@ export default function AICoachPage() {
 
 						<button
 							onClick={handleAnalyze}
-							className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-gray-900 font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 hover:bg-black w-full md:w-auto"
+							className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-gray-900 rounded-xl hover:bg-black w-full md:w-auto"
 						>
 							Get My Analysis
 							<ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
 						</button>
 					</div>
-					{/* Background Decoration */}
 					<div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-amber-100 rounded-full opacity-20 blur-3xl"></div>
 				</div>
 			)}
 
-			{/* Loading State */}
 			{loading && (
 				<div className="flex flex-col items-center justify-center py-20 animate-pulse">
 					<div className="relative">
@@ -94,11 +89,9 @@ export default function AICoachPage() {
 						<Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-bounce" size={24} />
 					</div>
 					<p className="text-xl font-medium text-gray-600">Analyzing patterns...</p>
-					<p className="text-sm text-gray-400 mt-2">Running SIP projections & spending audits</p>
 				</div>
 			)}
 
-			{/* Error State */}
 			{error && (
 				<div className="bg-red-50 border-2 border-red-100 rounded-2xl p-6 mb-8 flex items-start">
 					<AlertCircle className="w-6 h-6 mr-4 text-red-600 mt-1" />
@@ -109,23 +102,21 @@ export default function AICoachPage() {
 				</div>
 			)}
 
-			{/* Advice Result */}
 			{advice && (
 				<div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-					{/* Quick Stats Grid */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-black">
 							<div className="text-indigo-600 mb-2">
 								<TrendingDown size={24} />
 							</div>
-							<p className="text-sm text-gray-500">Transactions Audited</p>
+							<p className="text-sm opacity-60">Transactions Audited</p>
 							<p className="text-2xl font-bold">{expenseCount}</p>
 						</div>
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-black">
 							<div className="text-amber-500 mb-2">
 								<Target size={24} />
 							</div>
-							<p className="text-sm text-gray-500">Savings Potential</p>
+							<p className="text-sm opacity-60">Savings Potential</p>
 							<p className="text-2xl font-bold">High</p>
 						</div>
 						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -137,27 +128,34 @@ export default function AICoachPage() {
 						</div>
 					</div>
 
-					{/* AI Content Card */}
 					<div className="bg-white border-2 border-indigo-50 rounded-3xl p-8 md:p-10 shadow-2xl relative">
 						<div className="prose prose-indigo max-w-none">
 							<ReactMarkdown
 								components={{
+									// FORCE BLACK ON ALL HEADERS
 									h1: ({ ...props }) => (
-										<h1 className="text-2xl font-black mb-6 flex items-center gap-2 border-b pb-4 text-black" {...props} />
+										<h1 className="text-2xl font-black mb-6 flex items-center gap-2 border-b pb-4 text-black !opacity-100" {...props} />
 									),
-									h2: ({ ...props }) => <h2 className="text-xl font-bold mt-8 mb-4 text-black" {...props} />,
-									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4" {...props} />,
-									ul: ({ ...props }) => <ul className="space-y-3 my-4" {...props} />,
+									h2: ({ ...props }) => <h2 className="text-xl font-bold mt-8 mb-4 text-black !opacity-100" {...props} />,
+									h3: ({ ...props }) => <h3 className="text-lg font-bold mt-6 mb-2 text-black !opacity-100" {...props} />,
+
+									// FORCE BLACK ON PARAGRAPHS
+									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4 font-medium" {...props} />,
+
+									ul: ({ ...props }) => <ul className="space-y-3 my-4 list-none pl-0" {...props} />,
 									li: ({ ...props }) => (
-										<li className="flex items-start gap-2 bg-slate-50 p-3 rounded-lg border border-slate-100" {...props}>
+										<li className="flex items-start gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100" {...props}>
 											<ChevronRight size={18} className="mt-1 text-indigo-500 flex-shrink-0" />
-											{/* ✅ Changed text-gray-700 to text-black */}
-											<span className="text-black font-medium">{props.children}</span>
+											<span className="text-black font-semibold">{props.children}</span>
 										</li>
 									),
-									strong: ({ ...props }) => <strong className="font-bold text-black border-b-2 border-indigo-200" {...props} />,
+
+									// HIGHLIGHT STRONGS
+									strong: ({ ...props }) => <strong className="font-black text-black bg-yellow-100 px-1 rounded-sm" {...props} />,
+
+									// STYLE BLOCKQUOTES
 									blockquote: ({ ...props }) => (
-										<div className="bg-amber-50 border-l-4 border-amber-400 p-4 my-6 italic text-black rounded-r-lg" {...props} />
+										<div className="bg-slate-900 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500" {...props} />
 									),
 								}}
 							>
