@@ -62,7 +62,7 @@ export default function AICoachPage() {
 				<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
 					AI Coach
 				</h1>
-				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini 2.0 Flash.</p>
+				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini 2.5 Flash.</p>
 			</header>
 
 			{/* Action Card */}
@@ -141,32 +141,55 @@ export default function AICoachPage() {
 					</div>
 
 					{/* AI Content Card */}
-					<div className="bg-white border-2 border-indigo-50 rounded-3xl p-6 md:p-10 shadow-2xl relative">
-						<div className="prose prose-indigo max-w-none">
+					<div className="bg-white border-2 border-indigo-50 rounded-3xl p-6 md:p-10 shadow-2xl relative w-full overflow-hidden">
+						<div className="prose prose-slate max-w-none w-full text-left">
 							<ReactMarkdown
 								components={{
-									h1: ({ ...props }) => <h1 className="text-2xl font-black mb-6 border-b pb-4 text-black !opacity-100" {...props} />,
+									// FORCE HEADERS TO BLACK AND LEFT-ALIGNED
+									h1: ({ ...props }) => (
+										<h1 className="text-2xl font-black mb-6 border-b pb-4 text-black !opacity-100 text-left w-full" {...props} />
+									),
 									h2: ({ ...props }) => (
-										<h2 className="text-xl font-extrabold mt-8 mb-4 text-black !opacity-100 border-l-4 border-indigo-600 pl-3" {...props} />
+										<h2
+											className="text-xl font-extrabold mt-8 mb-4 text-black !opacity-100 border-l-4 border-indigo-600 pl-3 text-left w-full"
+											{...props}
+										/>
 									),
 									h3: ({ ...props }) => (
-										<h3 className="text-lg font-black mt-6 mb-2 text-black !opacity-100 flex items-center gap-2" {...props} />
+										<h3
+											className="text-lg font-black mt-6 mb-2 text-black !opacity-100 flex items-center gap-2 text-left w-full"
+											{...props}
+										/>
 									),
-									h4: ({ ...props }) => <h4 className="text-base font-bold mt-4 mb-2 text-black !opacity-100" {...props} />,
-									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4 font-medium !opacity-100" {...props} />,
-									ul: ({ ...props }) => <ul className="space-y-3 my-4 list-none pl-0" {...props} />,
-									ol: ({ ...props }) => <ol className="space-y-3 my-4 list-decimal pl-5 text-black font-bold !opacity-100" {...props} />,
+
+									// FORCE PARAGRAPHS TO BLACK AND LEFT-ALIGNED
+									p: ({ ...props }) => (
+										<p className="text-black text-base leading-relaxed mb-4 font-medium !opacity-100 text-left w-full" {...props} />
+									),
+
+									// LISTS & ITEMS
+									ul: ({ ...props }) => <ul className="space-y-3 my-4 list-none pl-0 w-full" {...props} />,
 									li: ({ ...props }) => (
-										<li className="flex items-start gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2" {...props}>
+										<li
+											className="flex items-start gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2 w-full text-left"
+											{...props}
+										>
 											<ChevronRight size={18} className="mt-1 text-indigo-500 shrink-0" />
-											<span className="text-black font-semibold !opacity-100">{props.children}</span>
+											<span className="text-black font-semibold !opacity-100 text-left">{props.children}</span>
 										</li>
 									),
+
+									// HIGHLIGHTS
 									strong: ({ ...props }) => (
 										<strong className="font-black text-black bg-yellow-100 px-1 rounded-sm !opacity-100" {...props} />
 									),
+
+									// BLOCKQUOTES (Offline mode note)
 									blockquote: ({ ...props }) => (
-										<div className="bg-slate-900 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500" {...props} />
+										<div
+											className="bg-slate-900 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500 w-full text-left"
+											{...props}
+										/>
 									),
 								}}
 							>
@@ -178,7 +201,7 @@ export default function AICoachPage() {
 							<p className="text-xs text-gray-400 uppercase tracking-widest font-bold">FinMentor AI Engine v1.0</p>
 							<button
 								onClick={handleAnalyze}
-								className="text-sm font-bold text-indigo-600 hover:text-indigo-800 underline decoration-2 underline-offset-4 cursor-pointer"
+								className="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:scale-105 transition-transform underline decoration-2 underline-offset-4 cursor-pointer"
 							>
 								Refresh Analysis
 							</button>
