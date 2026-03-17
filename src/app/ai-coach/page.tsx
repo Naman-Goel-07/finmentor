@@ -62,7 +62,7 @@ export default function AICoachPage() {
 				<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
 					AI Coach
 				</h1>
-				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini 1.5 Flash.</p>
+				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini 2.0 Flash.</p>
 			</header>
 
 			{/* Action Card */}
