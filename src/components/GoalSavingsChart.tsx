@@ -1,66 +1,64 @@
-"use client";
+'use client'
 
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { format } from "date-fns";
+import { useMemo } from 'react' //
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { format } from 'date-fns'
 
 export default function GoalSavingsChart({ savings }: { savings: any[] }) {
-  if (!savings || savings.length === 0) return null;
+	const chartData = useMemo(() => {
+		if (!savings || savings.length === 0) return []
 
-  // Process data for the chart natively to create cumulative points
-  // savings are ordered descending initially, but we want ascending for chart chronological history
-  const sortedSavings = [...savings].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  
-  let cumulative = 0;
-  
-  const dataMap: { [key: string]: number } = {};
-  
-  sortedSavings.forEach(entry => {
-     // Format to just MM/dd layout visually
-     const dateStr = format(new Date(entry.created_at), "MMM dd");
-     cumulative += Number(entry.amount);
-     // It overwrites if multiple inputs were enacted on exact same day safely tracking the total amount mapped by the end of day
-     dataMap[dateStr] = cumulative;
-  });
+		// Sort ascending for chronological history
+		const sortedSavings = [...savings].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
-  const chartData = Object.keys(dataMap).map(date => ({
-     date,
-     amount: dataMap[date]
-  }));
+		let cumulative = 0
+		const dataMap: { [key: string]: number } = {}
 
-  return (
-     <div className="w-full h-48 mt-6">
-        <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Savings Progress Graph</p>
-        <ResponsiveContainer width="100%" height="100%">
-           <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-             <XAxis 
-               dataKey="date" 
-               axisLine={false} 
-               tickLine={false} 
-               tick={{ fill: '#6B7280', fontSize: 12 }} 
-               dy={10} 
-             />
-             <YAxis 
-               axisLine={false} 
-               tickLine={false} 
-               tick={{ fill: '#6B7280', fontSize: 12 }} 
-               tickFormatter={(value) => `₹${value}`}
-             />
-             <Tooltip 
-                contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
-                formatter={(value: number) => [`₹${value}`, 'Cumulative Saved']}
-             />
-             <Line 
-               type="monotone" 
-               dataKey="amount" 
-               stroke="#2563EB" 
-               strokeWidth={2}
-               dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}
-               activeDot={{ r: 6 }} 
-               animationDuration={1500}
-             />
-           </LineChart>
-        </ResponsiveContainer>
-     </div>
-  );
+		sortedSavings.forEach((entry) => {
+			const dateStr = format(new Date(entry.created_at), 'MMM dd')
+			cumulative += Number(entry.amount)
+			// Updates the end-of-day total
+			dataMap[dateStr] = cumulative
+		})
+
+		return Object.keys(dataMap).map((date) => ({
+			date,
+			amount: dataMap[date],
+		}))
+	}, [savings]) // 👈 This dependency is key
+
+	if (chartData.length === 0) return null
+
+	return (
+		<div className="w-full h-48 mt-6">
+			<p className="text-[10px] font-black text-gray-400 mb-3 uppercase tracking-[0.2em]">Savings Progress</p>
+			<ResponsiveContainer width="100%" height="100%">
+				{/* ✅ Adding a 'key' here forces a re-render when the data length changes */}
+				<LineChart key={chartData.length} data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+					<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
+					<XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} dy={10} />
+					<YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} tickFormatter={(value) => `₹${value}`} />
+					<Tooltip
+						contentStyle={{
+							borderRadius: '12px',
+							border: 'none',
+							boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+							fontSize: '12px',
+							fontWeight: 'bold',
+						}}
+						formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Total Saved']}
+					/>
+					<Line
+						type="monotone"
+						dataKey="amount"
+						stroke="#2563EB"
+						strokeWidth={3}
+						dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}
+						activeDot={{ r: 6, strokeWidth: 0 }}
+						animationDuration={800} // Slightly faster for responsiveness
+					/>
+				</LineChart>
+			</ResponsiveContainer>
+		</div>
+	)
 }
