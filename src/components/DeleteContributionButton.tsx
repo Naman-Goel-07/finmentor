@@ -9,15 +9,27 @@ export default function DeleteContributionButton({ id }: { id: string }) {
 	const router = useRouter()
 	const [isDeleting, setIsDeleting] = useState(false)
 
-	const handleDelete = async () => {
-		setIsDeleting(true)
-		const { error } = await supabase.from('goal_contributions').delete().eq('id', id)
+	const handleDelete = async (e: React.MouseEvent) => {
+		// 🛑 CRITICAL: Prevents the GoalCard from toggling/expanding when you click delete
+		e.stopPropagation()
 
-		if (error) {
-			alert('Error: ' + error.message)
+		setIsDeleting(true)
+
+		try {
+			const { error } = await supabase.from('goal_contributions').delete().eq('id', id)
+
+			if (error) {
+				alert('Error: ' + error.message)
+				setIsDeleting(false)
+			} else {
+				// Refresh the server component to update the progress bar and history
+				router.refresh()
+				// We don't setIsDeleting(false) here because the component
+				// will be removed from the DOM when the list refreshes.
+			}
+		} catch (err) {
+			console.error(err)
 			setIsDeleting(false)
-		} else {
-			router.refresh()
 		}
 	}
 
@@ -25,9 +37,9 @@ export default function DeleteContributionButton({ id }: { id: string }) {
 		<button
 			onClick={handleDelete}
 			disabled={isDeleting}
-			className="text-slate-500 hover:text-red-400 p-1 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+			className="text-slate-400 hover:text-red-500 p-1 rounded-md transition-colors opacity-0 group-hover/item:opacity-100 disabled:opacity-100 cursor-pointer"
 		>
-			{isDeleting ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+			{isDeleting ? <Loader2 size={12} className="animate-spin text-blue-600" /> : <X size={14} />}
 		</button>
 	)
 }
