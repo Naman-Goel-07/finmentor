@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Target, CheckCircle2, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { format } from 'date-fns'
 import AddSavingModal from './AddSavingModal'
 import DeleteContributionButton from './DeleteContributionButton'
-import GoalSavingsChart from './GoalSavingsChart' // ✅ Ensure this is imported
+import GoalSavingsChart from './GoalSavingsChart'
 
 export default function GoalCard({ goal }: { goal: any }) {
 	const router = useRouter()
@@ -16,13 +16,19 @@ export default function GoalCard({ goal }: { goal: any }) {
 	const [expanded, setExpanded] = useState(false)
 	const [showSavingModal, setShowSavingModal] = useState(false)
 
-	// ✅ THE NUDGE: Forces the Chart to re-calculate cumulative sums
+	// ✅ THE NUDGE: Forces child components to re-calculate cumulative logic
 	const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-	const percent = Math.min(Math.round((goal.saved_amount / goal.target_amount) * 100), 100)
-	const remaining = Math.max(goal.target_amount - goal.saved_amount, 0)
+	// ✅ THE DYNAMIC TRUTH: Calculate total from history, not the stale database column
+	const savingsHistory = goal.goal_savings || []
+	const dynamicTotalSaved = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
 
-	const isCompleted = goal.saved_amount >= goal.target_amount
+	// Use the dynamic total for all calculations to ensure instant slider response
+	const percent = goal.target_amount > 0 ? Math.min(Math.round((dynamicTotalSaved / goal.target_amount) * 100), 100) : 0
+	const remaining = Math.max(goal.target_amount - dynamicTotalSaved, 0)
+	const isCompleted = dynamicTotalSaved >= goal.target_amount
+
+	// Status and Deadline calculation
 	const rawDaysRemaining = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 	const daysRemaining = Math.max(rawDaysRemaining, 0)
 
@@ -35,17 +41,17 @@ export default function GoalCard({ goal }: { goal: any }) {
 		statusColor = 'bg-green-100 text-green-800'
 		deadlineText = 'Goal Reached!'
 	} else if (rawDaysRemaining < 0) {
-		statusText = 'Deadline Missed'
+		statusText = 'Expired'
 		statusColor = 'bg-red-100 text-red-800'
-		deadlineText = 'Deadline has passed'
+		deadlineText = 'Deadline passed'
 	} else if (daysRemaining < 30 && percent < 80) {
-		statusText = 'Behind Schedule'
+		statusText = 'Behind'
 		statusColor = 'bg-amber-100 text-amber-800'
 	}
 
 	const smartSuggestion = !isCompleted && daysRemaining > 0 && remaining > 0 ? Math.ceil(remaining / daysRemaining) : 0
 
-	// ✅ HANDLER: Updates the nudge and triggers Next.js re-fetch
+	// ✅ HANDLER: Clears cache and triggers Next.js re-fetch
 	const handleManualRefresh = () => {
 		setRefreshTrigger((prev) => prev + 1)
 		router.refresh()
@@ -88,14 +94,12 @@ export default function GoalCard({ goal }: { goal: any }) {
 		}
 	}
 
-	const savingsHistory = goal.goal_savings || []
-
 	return (
 		<>
 			{showSavingModal && <AddSavingModal goalId={goal.id} goalName={goal.goal_name} onClose={() => setShowSavingModal(false)} />}
 			<div
 				className={clsx(
-					'bg-white p-4 md:p-6 rounded-2xl shadow-sm border flex flex-col transition-all duration-300 w-full group',
+					'bg-white p-4 md:p-6 rounded-3xl shadow-sm border flex flex-col transition-all duration-300 w-full group',
 					isCompleted ? 'border-green-200 bg-green-50/10' : 'border-gray-100',
 				)}
 			>
@@ -127,24 +131,41 @@ export default function GoalCard({ goal }: { goal: any }) {
 				<div className="pt-2">
 					<div className="flex justify-between text-sm mb-2 items-end">
 						<div>
-							<span className="text-2xl font-black text-gray-900">₹{goal.saved_amount.toLocaleString()}</span>
+							{/* ✅ Dynamic savings amount */}
+							<span className="text-2xl font-black text-gray-900">₹{dynamicTotalSaved.toLocaleString()}</span>
 							<span className="text-gray-400 ml-1 text-xs">/ ₹{goal.target_amount.toLocaleString()}</span>
 						</div>
+						<span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{percent}% Saved</span>
 					</div>
+
+					{/* ✅ THE SLIDER: Now responds instantly to 'percent' */}
 					<div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
 						<div
-							className={clsx('h-full rounded-full transition-all duration-1000', isCompleted ? 'bg-green-500' : 'bg-blue-600')}
+							className={clsx('h-full rounded-full transition-all duration-1000 ease-out', isCompleted ? 'bg-green-500' : 'bg-blue-600')}
 							style={{ width: `${percent}%` }}
 						></div>
+					</div>
+
+					<div className="flex justify-between items-center mt-3">
+						<div className="flex items-center gap-1.5">
+							<div className={clsx('w-1.5 h-1.5 rounded-full', isCompleted ? 'bg-green-500' : 'bg-blue-500')} />
+							<p className={clsx('text-xs font-black uppercase tracking-widest', isCompleted ? 'text-green-600' : 'text-blue-600')}>
+								{isCompleted ? 'Goal Completed 🎉' : 'Progress'}
+							</p>
+						</div>
+						{!isCompleted && smartSuggestion > 0 && (
+							<p className="text-[10px] font-bold text-amber-600 flex items-center gap-1 bg-amber-50 px-2 py-1 rounded shadow-sm">
+								<TrendingUp size={12} /> ₹{smartSuggestion.toLocaleString()}/day
+							</p>
+						)}
 					</div>
 				</div>
 
 				{expanded && (
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
-						{/* ✅ THE GRAPH: Receiving the refreshTrigger */}
+						{/* ✅ CHART: Fully synchronized with history */}
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
-						{/* Archive/Delete for Completed Goals */}
 						{isCompleted ? (
 							<div className="flex gap-2 mb-6 mt-6">
 								<button
@@ -200,7 +221,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 											</div>
 											<div className="flex items-center gap-3">
 												<span className="text-xs font-black text-green-600">+₹{entry.amount.toLocaleString()}</span>
-												{/* ✅ Delete button: Now with onSuccess nudge */}
+												{/* ✅ DELETE: Calls parent refresh to sync slider and graph */}
 												<DeleteContributionButton id={entry.id} onSuccess={handleManualRefresh} />
 											</div>
 										</div>
