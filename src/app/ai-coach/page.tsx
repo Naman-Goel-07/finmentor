@@ -17,8 +17,8 @@ export default function AICoachPage() {
 		setAdvice(null)
 
 		try {
-			// 1. Fetch expenses from Supabase
-			const { data: expenses, error: dbError } = await supabase.from('expenses').select('*').order('date', { ascending: false })
+			// 1. Fetch recent expenses (Limited to 10 to save API Quota/Tokens)
+			const { data: expenses, error: dbError } = await supabase.from('expenses').select('*').order('date', { ascending: false }).limit(10) // ✅ Crucial for preventing 429 Quota errors
 
 			if (dbError) throw new Error('Database error: ' + dbError.message)
 
@@ -41,6 +41,10 @@ export default function AICoachPage() {
 			const data = await response.json()
 
 			if (!response.ok) {
+				// ✅ Better error messaging for the 429 Quota issue
+				if (response.status === 429) {
+					throw new Error('AI is overwhelmed! Google Free Tier limit reached. Please wait 60 seconds and try again.')
+				}
 				throw new Error(data.error || 'Failed to analyze spending.')
 			}
 
@@ -54,8 +58,8 @@ export default function AICoachPage() {
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
-			<header className="mb-8">
-				<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+			<header className="mb-8 text-center md:text-left">
+				<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
 					AI Coach
 				</h1>
 				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini 1.5 Flash.</p>
@@ -87,7 +91,7 @@ export default function AICoachPage() {
 
 			{/* Loading State */}
 			{loading && (
-				<div className="flex flex-col items-center justify-center py-20 animate-pulse">
+				<div className="flex flex-col items-center justify-center py-20">
 					<div className="relative">
 						<Loader2 className="animate-spin text-indigo-600 mb-4" size={64} />
 						<Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-bounce" size={24} />
@@ -100,7 +104,7 @@ export default function AICoachPage() {
 			{/* Error State */}
 			{error && (
 				<div className="bg-red-50 border-2 border-red-100 rounded-2xl p-6 mb-8 flex items-start">
-					<AlertCircle className="w-6 h-6 mr-4 text-red-600 mt-1" />
+					<AlertCircle className="w-6 h-6 mr-4 text-red-600 mt-1 shrink-0" />
 					<div>
 						<h3 className="font-bold text-red-900">Coach is stuck!</h3>
 						<p className="text-red-700">{error}</p>
@@ -137,14 +141,11 @@ export default function AICoachPage() {
 					</div>
 
 					{/* AI Content Card */}
-					<div className="bg-white border-2 border-indigo-50 rounded-3xl p-8 md:p-10 shadow-2xl relative">
+					<div className="bg-white border-2 border-indigo-50 rounded-3xl p-6 md:p-10 shadow-2xl relative">
 						<div className="prose prose-indigo max-w-none">
 							<ReactMarkdown
 								components={{
-									// FORCE BLACK ON ALL HEADERS
-									h1: ({ ...props }) => (
-										<h1 className="text-2xl font-black mb-6 flex items-center gap-2 border-b pb-4 text-black !opacity-100" {...props} />
-									),
+									h1: ({ ...props }) => <h1 className="text-2xl font-black mb-6 border-b pb-4 text-black !opacity-100" {...props} />,
 									h2: ({ ...props }) => (
 										<h2 className="text-xl font-extrabold mt-8 mb-4 text-black !opacity-100 border-l-4 border-indigo-600 pl-3" {...props} />
 									),
@@ -152,27 +153,18 @@ export default function AICoachPage() {
 										<h3 className="text-lg font-black mt-6 mb-2 text-black !opacity-100 flex items-center gap-2" {...props} />
 									),
 									h4: ({ ...props }) => <h4 className="text-base font-bold mt-4 mb-2 text-black !opacity-100" {...props} />,
-
-									// FORCE BLACK ON PARAGRAPHS
 									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4 font-medium !opacity-100" {...props} />,
-
-									// LISTS & NUMBERED LISTS
 									ul: ({ ...props }) => <ul className="space-y-3 my-4 list-none pl-0" {...props} />,
 									ol: ({ ...props }) => <ol className="space-y-3 my-4 list-decimal pl-5 text-black font-bold !opacity-100" {...props} />,
-
 									li: ({ ...props }) => (
 										<li className="flex items-start gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2" {...props}>
-											<ChevronRight size={18} className="mt-1 text-indigo-500 flex-shrink-0" />
+											<ChevronRight size={18} className="mt-1 text-indigo-500 shrink-0" />
 											<span className="text-black font-semibold !opacity-100">{props.children}</span>
 										</li>
 									),
-
-									// HIGHLIGHT STRONGS
 									strong: ({ ...props }) => (
 										<strong className="font-black text-black bg-yellow-100 px-1 rounded-sm !opacity-100" {...props} />
 									),
-
-									// STYLE BLOCKQUOTES
 									blockquote: ({ ...props }) => (
 										<div className="bg-slate-900 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500" {...props} />
 									),
