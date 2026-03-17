@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { format } from 'date-fns'
 import AddSavingModal from './AddSavingModal'
-import DeleteContributionButton from './DeleteContributionButton' // ✅ Import our new button
+import DeleteContributionButton from './DeleteContributionButton'
+import GoalSavingsChart from './GoalSavingsChart' // ✅ Ensure this is imported
 
 export default function GoalCard({ goal }: { goal: any }) {
 	const router = useRouter()
@@ -15,10 +16,12 @@ export default function GoalCard({ goal }: { goal: any }) {
 	const [expanded, setExpanded] = useState(false)
 	const [showSavingModal, setShowSavingModal] = useState(false)
 
+	// ✅ THE NUDGE: Forces the Chart to re-calculate cumulative sums
+	const [refreshTrigger, setRefreshTrigger] = useState(0)
+
 	const percent = Math.min(Math.round((goal.saved_amount / goal.target_amount) * 100), 100)
 	const remaining = Math.max(goal.target_amount - goal.saved_amount, 0)
 
-	// Status calculation
 	const isCompleted = goal.saved_amount >= goal.target_amount
 	const rawDaysRemaining = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 	const daysRemaining = Math.max(rawDaysRemaining, 0)
@@ -35,14 +38,18 @@ export default function GoalCard({ goal }: { goal: any }) {
 		statusText = 'Deadline Missed'
 		statusColor = 'bg-red-100 text-red-800'
 		deadlineText = 'Deadline has passed'
-	} else if (daysRemaining > 0) {
-		if (daysRemaining < 30 && percent < 80) {
-			statusText = 'Behind Schedule'
-			statusColor = 'bg-amber-100 text-amber-800'
-		}
+	} else if (daysRemaining < 30 && percent < 80) {
+		statusText = 'Behind Schedule'
+		statusColor = 'bg-amber-100 text-amber-800'
 	}
 
 	const smartSuggestion = !isCompleted && daysRemaining > 0 && remaining > 0 ? Math.ceil(remaining / daysRemaining) : 0
+
+	// ✅ HANDLER: Updates the nudge and triggers Next.js re-fetch
+	const handleManualRefresh = () => {
+		setRefreshTrigger((prev) => prev + 1)
+		router.refresh()
+	}
 
 	const handleQuickSave = async (amount: number) => {
 		setLoadingAction(amount)
@@ -54,7 +61,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 				body: JSON.stringify({ id: goal.id, amountToAdd: amount }),
 			})
 			if (!res.ok) throw new Error('Update failed')
-			router.refresh()
+			handleManualRefresh()
 		} catch (err: any) {
 			setErrorAmount('Failed to update.')
 		} finally {
@@ -130,23 +137,16 @@ export default function GoalCard({ goal }: { goal: any }) {
 							style={{ width: `${percent}%` }}
 						></div>
 					</div>
-					<div className="flex justify-between items-center mt-3">
-						<p className={clsx('text-xs font-black uppercase tracking-widest', isCompleted ? 'text-green-600' : 'text-blue-600')}>
-							{isCompleted ? 'Goal Completed 🎉' : `${percent}% reached`}
-						</p>
-						{!isCompleted && smartSuggestion > 0 && (
-							<p className="text-[10px] font-bold text-amber-600 flex items-center gap-1 bg-amber-50 px-2 py-1 rounded">
-								<TrendingUp size={12} /> ₹{smartSuggestion.toLocaleString()}/day
-							</p>
-						)}
-					</div>
 				</div>
 
 				{expanded && (
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
+						{/* ✅ THE GRAPH: Receiving the refreshTrigger */}
+						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
+
 						{/* Archive/Delete for Completed Goals */}
 						{isCompleted ? (
-							<div className="flex gap-2 mb-6">
+							<div className="flex gap-2 mb-6 mt-6">
 								<button
 									onClick={() => handleGoalAction('archive')}
 									className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2"
@@ -161,7 +161,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 								</button>
 							</div>
 						) : (
-							<div className="mb-6">
+							<div className="mb-6 mt-6">
 								<div className="flex justify-between items-center mb-3">
 									<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Save</p>
 									<button onClick={() => setShowSavingModal(true)} className="text-[10px] font-bold text-blue-600 hover:underline">
@@ -183,7 +183,6 @@ export default function GoalCard({ goal }: { goal: any }) {
 							</div>
 						)}
 
-						{/* Savings History with Delete Icons */}
 						<div>
 							<p className="text-[10px] font-black text-gray-400 mb-3 uppercase tracking-widest">History</p>
 							<div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
@@ -201,8 +200,8 @@ export default function GoalCard({ goal }: { goal: any }) {
 											</div>
 											<div className="flex items-center gap-3">
 												<span className="text-xs font-black text-green-600">+₹{entry.amount.toLocaleString()}</span>
-												{/* ✅ Delete button for this specific saving */}
-												<DeleteContributionButton id={entry.id} />
+												{/* ✅ Delete button: Now with onSuccess nudge */}
+												<DeleteContributionButton id={entry.id} onSuccess={handleManualRefresh} />
 											</div>
 										</div>
 									))
