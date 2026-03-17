@@ -1,19 +1,20 @@
-import { AlertCircle, Plus, Info } from 'lucide-react'
+import { AlertCircle, Plus } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
 import AddExpenseModal from '@/components/AddExpenseModal'
-import DeleteExpenseButton from '@/components/DeleteExpenseButton' // ✅ Import the client component
+import DeleteExpenseButton from '@/components/DeleteExpenseButton'
 
-export const revalidate = 0
+export const revalidate = 0 // Ensures the page always fetches fresh data
 
 export default async function ExpensesPage() {
+	// 1. Check Configuration
 	const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
 	const hasSupabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'your_supabase_public_key'
-
 	const isMissingSupabase = !hasSupabaseUrl || !hasSupabaseKey
 
 	let expenses: any[] = []
 	let dbError = null
 
+	// 2. Fetch Data
 	if (!isMissingSupabase) {
 		const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false })
 
@@ -27,8 +28,8 @@ export default async function ExpensesPage() {
 	const isEmptyDatabase = expenses.length === 0 && !dbError
 
 	return (
-		<div className="animate-in fade-in duration-500">
-			{/* ✅ HEADER */}
+		<div className="animate-in fade-in duration-500 max-w-6xl mx-auto px-4">
+			{/* HEADER */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
 					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent leading-tight">
@@ -36,36 +37,23 @@ export default async function ExpensesPage() {
 					</h1>
 					<p className="text-slate-400 mt-2 font-medium italic">Manage and track your financial records.</p>
 				</div>
-
 				<div className="shrink-0">
 					<AddExpenseModal />
 				</div>
 			</header>
 
-			{/* ERROR STATES */}
+			{/* ERROR HANDLING */}
 			{isMissingSupabase && (
-				<div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 rounded-2xl p-6 mb-8 flex items-start shadow-lg">
-					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 mt-0.5 text-amber-500" />
+				<div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 rounded-2xl p-6 mb-8 flex items-start">
+					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 text-amber-500" />
 					<div>
 						<h3 className="font-bold text-amber-100">Setup Required</h3>
-						<p className="mt-1 text-sm opacity-80">
-							Please configure Supabase API keys in <code className="bg-slate-800 px-1 rounded text-white">.env.local</code>.
-						</p>
+						<p className="mt-1 text-sm opacity-80">Configure Supabase keys in .env.local.</p>
 					</div>
 				</div>
 			)}
 
-			{dbError && (
-				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-start shadow-lg">
-					<AlertCircle className="w-6 h-6 mr-4 flex-shrink-0 mt-0.5" />
-					<div>
-						<h3 className="font-bold text-red-200">Database Error</h3>
-						<p className="mt-1 text-sm opacity-80">{dbError}</p>
-					</div>
-				</div>
-			)}
-
-			{/* ✅ TABLE SECTION */}
+			{/* TABLE SECTION */}
 			<section className="bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
 				{isEmptyDatabase ? (
 					<div className="flex flex-col items-center justify-center p-20 text-center">
@@ -73,7 +61,7 @@ export default async function ExpensesPage() {
 							<Plus size={40} className="text-slate-500" />
 						</div>
 						<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">No expenses yet</h3>
-						<p className="text-slate-400 max-w-sm mb-8 font-medium italic">Your database is empty.</p>
+						<p className="text-slate-400 max-w-sm mb-8 font-medium italic">Add your first transaction to get started.</p>
 						<AddExpenseModal />
 					</div>
 				) : (
@@ -85,12 +73,12 @@ export default async function ExpensesPage() {
 									<th className="py-5 px-8">Category</th>
 									<th className="py-5 px-8">Note</th>
 									<th className="py-5 px-8 text-right">Amount</th>
-									<th className="py-5 px-6 w-16"></th> {/* ✅ Action Column Header */}
+									<th className="py-5 px-6 w-16 text-center">Actions</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-slate-800/40">
-								{expenses.map((expense, index) => (
-									<tr key={expense.id || `expense-${index}`} className="hover:bg-slate-800/30 transition-colors group">
+								{expenses.map((expense) => (
+									<tr key={expense.id} className="hover:bg-slate-800/30 transition-colors group">
 										<td className="py-5 px-8 text-slate-300 font-medium whitespace-nowrap">
 											{new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
 										</td>
@@ -101,14 +89,9 @@ export default async function ExpensesPage() {
 										</td>
 										<td className="py-5 px-8 text-slate-400 font-medium italic">{expense.note || 'No description'}</td>
 										<td className="py-5 px-8 text-right font-bold text-white text-lg">
-											₹
-											{expense.amount.toLocaleString('en-IN', {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2,
-											})}
+											₹{expense.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
 										</td>
-										{/* ✅ Action Column Cell */}
-										<td className="py-5 px-6 text-right">
+										<td className="py-5 px-6 text-center">
 											<DeleteExpenseButton id={expense.id} />
 										</td>
 									</tr>
