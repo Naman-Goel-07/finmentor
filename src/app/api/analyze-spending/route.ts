@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
 		// 2. Switched to gemini-1.5-flash for better quota stability
 		const result = await client.models.generateContent({
-			model: 'gemini-1.5-flash',
+			model: 'models/gemini-1.5-flash',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
 		})
 
