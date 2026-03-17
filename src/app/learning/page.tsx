@@ -7,9 +7,8 @@ export default function LearningPage() {
 			description: 'Learn the 50/30/20 rule and how to track your money effectively without feeling restricted.',
 			icon: BookOpen,
 			color: 'bg-blue-50 text-blue-600',
-			time: '5 min read',
-			// ✅ Added external link
-			url: 'https://www.investopedia.com/ask/answers/022916/what-503020-budgeting-rule.asp',
+			time: '7 min read',
+			url: 'https://medium.com/@subscriptioninsider/subscription-budgeting-101-the-50-30-20-rule-applied-to-digital-services-87010711d2e6',
 		},
 		{
 			title: 'Intro to Investing',
@@ -17,8 +16,7 @@ export default function LearningPage() {
 			icon: TrendingUp,
 			color: 'bg-green-50 text-green-600',
 			time: '10 min read',
-			// ✅ Added external link
-			url: 'https://www.clearias.com/investing-for-beginners/',
+			url: 'https://iamuhammadtahir.medium.com/intro-to-investing-5a75d06013a1',
 		},
 		{
 			title: 'Avoiding Debt Traps',
@@ -26,8 +24,7 @@ export default function LearningPage() {
 			icon: CreditCard,
 			color: 'bg-purple-50 text-purple-600',
 			time: '8 min read',
-			// ✅ Added external link
-			url: 'https://pib.gov.in/PressReleaseIframePage.aspx?PRID=1931335',
+			url: 'https://medium.com/@reginaldbbcbride/the-risks-of-being-in-debt-dc80478f1fcd',
 		},
 		{
 			title: 'UPI Scam Awareness',
@@ -35,8 +32,7 @@ export default function LearningPage() {
 			icon: ShieldAlert,
 			color: 'bg-red-50 text-red-600',
 			time: '6 min read',
-			// ✅ Added external link
-			url: 'https://www.npci.org.in/what-we-do/upi/safety-awareness',
+			url: 'https://medium.com/@weAFAR_Org/dont-wire-money-before-you-verify-a-guide-for-new-investors-c2ab1a5103a9',
 		},
 	]
 
