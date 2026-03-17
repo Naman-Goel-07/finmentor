@@ -139,21 +139,25 @@ export default function AICoachPage() {
 
 					{/* AI Content Card */}
 					<div className="bg-white border-2 border-indigo-50 rounded-3xl p-8 md:p-10 shadow-2xl relative">
-						<div className="prose prose-indigo max-w-none prose-p:text-gray-600 prose-headings:text-gray-900">
+						<div className="prose prose-indigo max-w-none">
 							<ReactMarkdown
 								components={{
-									h1: ({ ...props }) => <h1 className="text-2xl font-black mb-6 flex items-center gap-2 border-b pb-4" {...props} />,
-									h2: ({ ...props }) => <h2 className="text-xl font-bold mt-8 mb-4 text-indigo-900" {...props} />,
+									h1: ({ ...props }) => (
+										<h1 className="text-2xl font-black mb-6 flex items-center gap-2 border-b pb-4 text-black" {...props} />
+									),
+									h2: ({ ...props }) => <h2 className="text-xl font-bold mt-8 mb-4 text-black" {...props} />,
+									p: ({ ...props }) => <p className="text-black text-base leading-relaxed mb-4" {...props} />,
 									ul: ({ ...props }) => <ul className="space-y-3 my-4" {...props} />,
 									li: ({ ...props }) => (
 										<li className="flex items-start gap-2 bg-slate-50 p-3 rounded-lg border border-slate-100" {...props}>
 											<ChevronRight size={18} className="mt-1 text-indigo-500 flex-shrink-0" />
-											<span className="text-gray-700">{props.children}</span>
+											{/* ✅ Changed text-gray-700 to text-black */}
+											<span className="text-black font-medium">{props.children}</span>
 										</li>
 									),
-									strong: ({ ...props }) => <strong className="font-bold text-indigo-600" {...props} />,
+									strong: ({ ...props }) => <strong className="font-bold text-black border-b-2 border-indigo-200" {...props} />,
 									blockquote: ({ ...props }) => (
-										<div className="bg-amber-50 border-l-4 border-amber-400 p-4 my-6 italic text-amber-900 rounded-r-lg" {...props} />
+										<div className="bg-amber-50 border-l-4 border-amber-400 p-4 my-6 italic text-black rounded-r-lg" {...props} />
 									),
 								}}
 							>
