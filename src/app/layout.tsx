@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900 overflow-y-auto`}>
+			  <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900 overflow-x-hidden overflow-y-auto min-h-screen`}>
 				<ClientShell>{children}</ClientShell>
 			</body>
 		</html>
