@@ -5,8 +5,8 @@ import Sidebar from './Sidebar'
 import { Menu, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import supabase from '@/lib/supabaseClient'
+import clsx from 'clsx'
 
-// ✅ Match the ID you used in the SQL and Profile Page
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
@@ -18,7 +18,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		let channel: any
 
 		async function getProfile() {
-			// ✅ 1. Only select 'full_name' (removed avatar_url to prevent 400 error)
 			const { data: profileData, error } = await supabase.from('profiles').select('full_name').eq('id', DEMO_USER_ID).single()
 
 			if (error) {
@@ -28,11 +27,10 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 			if (profileData) {
 				setProfile({
 					name: profileData.full_name || '',
-					avatar: '', // Keep empty as we don't have a DB column for this
+					avatar: '',
 				})
 			}
 
-			// ✅ 2. REALTIME: Listen for changes to the Demo ID
 			channel = supabase
 				.channel(`profile-demo`)
 				.on(
@@ -44,7 +42,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 						filter: `id=eq.${DEMO_USER_ID}`,
 					},
 					(payload) => {
-						// ✅ Only update based on columns that actually exist
 						if (payload?.new) {
 							setProfile({
 								name: payload.new.full_name || '',
@@ -66,23 +63,26 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	}, [])
 
 	return (
-		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30">
+		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
+			{/* 1. SIDEBAR: Ensure Sidebar.tsx uses 'fixed' on mobile */}
 			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={profile} />
 
-			<div className="flex-1 flex flex-col h-screen overflow-hidden">
+			{/* 2. MAIN CONTENT WRAPPER */}
+			{/* Added 'min-w-0' and 'w-full' to force it to ignore the sidebar's width on mobile */}
+			<div className="flex-1 flex flex-col h-screen min-w-0 w-full overflow-hidden relative">
 				<header className="bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/60 h-16 flex items-center shrink-0 z-30">
 					<div className="max-w-6xl mx-auto w-full px-4 md:px-8 flex items-center justify-between">
 						<div className="flex items-center gap-3">
 							<button
 								onClick={() => setSidebarOpen(true)}
-								className="md:hidden text-slate-400 cursor-pointer p-2 hover:bg-slate-800 rounded-xl transition-all"
+								className="md:hidden text-slate-400 cursor-pointer p-2 hover:bg-slate-800 rounded-xl transition-all outline-none"
 							>
 								<Menu size={20} />
 							</button>
+							{/* Hide logo on desktop because it's in the sidebar */}
 							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor</h1>
 						</div>
 
-						{/* ✅ This will now display correctly since the 400 error is gone */}
 						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
 							{profile.name ? `Welcome back, ${profile.name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
 						</div>
@@ -92,11 +92,10 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 								onClick={() => setProfileOpen(!profileOpen)}
 								className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-800 transition-all cursor-pointer outline-none group"
 							>
-								{/* Fallback to User icon since avatar column is gone */}
 								<div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white border-2 border-slate-800 shadow-lg overflow-hidden shrink-0">
 									<User size={20} />
 								</div>
-								<ChevronDown size={14} className={`text-slate-500 transition-transform duration-300 ${profileOpen ? 'rotate-180' : ''}`} />
+								<ChevronDown size={14} className={clsx('text-slate-500 transition-transform duration-300', profileOpen && 'rotate-180')} />
 							</button>
 
 							{profileOpen && (
@@ -127,9 +126,17 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 					</div>
 				</header>
 
-				<main className="flex-1 overflow-y-auto bg-[#020617]">
-					<div className="max-w-6xl mx-auto w-full p-4 md:p-8 min-h-full">{children}</div>
+				<main className="flex-1 overflow-y-auto bg-[#020617] relative">
+					<div className="max-w-6xl mx-auto w-full p-4 md:p-8 min-h-full overflow-x-hidden">{children}</div>
 				</main>
+
+				{/* MOBILE OVERLAY: Dims the screen when sidebar is open */}
+				{sidebarOpen && (
+					<div
+						className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300"
+						onClick={() => setSidebarOpen(false)}
+					/>
+				)}
 			</div>
 		</div>
 	)
