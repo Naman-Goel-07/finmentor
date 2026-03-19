@@ -34,33 +34,32 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 	return (
 		<div
 			className={clsx(
-				// MOBILE: Floating Drawer
-				'fixed inset-y-0 left-0 z-50 bg-[#020617] border-r border-slate-800/60 flex flex-col transition-transform duration-300 ease-in-out w-64',
-
-				// DESKTOP: Static Sidebar
-				'md:relative md:translate-x-0',
-
-				// Toggle Logic
+				'fixed inset-y-0 left-0 z-50 bg-[#020617] border-r border-slate-800/60 flex flex-col transition-all duration-300 ease-in-out w-64',
+				'md:relative md:translate-x-0 overflow-x-hidden',
 				isOpen ? 'translate-x-0' : '-translate-x-full',
-
-				// Collapse Logic (Desktop only)
 				isCollapsed ? 'md:w-20' : 'md:w-64',
 			)}
 		>
 			{/* LOGO SECTION */}
 			<div
 				className={clsx(
-					'flex items-center h-16 border-b border-slate-800/60 transition-all duration-300',
+					'flex items-center h-16 border-b border-slate-800/60 transition-all duration-300 relative group/logo',
 					isCollapsed ? 'justify-center px-0' : 'justify-between px-6',
 				)}
 			>
 				{!isCollapsed && (
-					<div className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent tracking-tighter">
+					<div className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent tracking-tighter whitespace-nowrap">
 						FinMentor AI
 					</div>
 				)}
 
-				{/* Collapse Toggle (Desktop Only) */}
+				{/* Logo Tooltip (Visible when collapsed) */}
+				{isCollapsed && (
+					<div className="hidden md:block absolute left-16 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/logo:opacity-100 pointer-events-none transition-all translate-x-2 group-hover/logo:translate-x-0 whitespace-nowrap z-[70] shadow-lg">
+						FINMENTOR
+					</div>
+				)}
+
 				<button
 					onClick={() => setIsCollapsed(!isCollapsed)}
 					className={clsx(
@@ -71,14 +70,13 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 					{isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
 				</button>
 
-				{/* Close Button (Mobile Only) */}
-				<button onClick={() => setIsOpen && setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white p-2 cursor-pointer">
+				<button onClick={() => setIsOpen && setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white p-2">
 					<X size={24} />
 				</button>
 			</div>
 
 			{/* NAVIGATION */}
-			<nav className="flex-1 space-y-1.5 p-4 overflow-y-auto custom-scrollbar">
+			<nav className="flex-1 space-y-1.5 p-4 overflow-y-auto custom-scrollbar overflow-x-hidden">
 				{navItems.map((item) => {
 					const isActive = pathname === item.href || (pathname === '/' && item.href === '/dashboard')
 					return (
@@ -95,20 +93,21 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 						>
 							<item.icon className={clsx('w-5 h-5 shrink-0', isActive ? 'text-blue-400' : 'group-hover:text-slate-100')} />
 
-							{/* Hide text when collapsed on desktop */}
 							<span
 								className={clsx(
-									'font-semibold text-sm tracking-wide transition-opacity',
+									'font-semibold text-sm tracking-wide transition-opacity whitespace-nowrap',
 									isCollapsed ? 'md:opacity-0 md:hidden' : 'opacity-100',
 								)}
 							>
 								{item.name}
 							</span>
 
-							{/* Tooltip for Collapsed State */}
+							{/* IMPROVED TOOLTIP */}
 							{isCollapsed && (
-								<div className="hidden md:block absolute left-14 bg-slate-900 text-white text-xs px-2 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[60] border border-slate-800 shadow-xl">
+								<div className="hidden md:block absolute left-16 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[60] border border-slate-700 shadow-2xl font-medium">
 									{item.name}
+									{/* Small Arrow Pointer */}
+									<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45" />
 								</div>
 							)}
 						</Link>
@@ -117,7 +116,7 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 			</nav>
 
 			{/* MINI PROFILE FOOTER */}
-			<div className="p-4 border-t border-slate-800/60">
+			<div className="p-4 border-t border-slate-800/60 group/profile relative">
 				<div
 					className={clsx(
 						'flex items-center gap-3 px-2 py-2 rounded-xl transition-all duration-300',
@@ -133,9 +132,17 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 					</div>
 
 					{!isCollapsed && (
-						<div className="overflow-hidden">
-							<p className="text-xs font-bold text-slate-200 truncate italic">{userProfile.name || 'FinMentor User'}</p>
+						<div className="overflow-hidden whitespace-nowrap">
+							<p className="text-xs font-bold text-slate-200 truncate italic">{userProfile.name || 'User'}</p>
 							<p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">PRO PLAN</p>
+						</div>
+					)}
+
+					{/* Profile Tooltip */}
+					{isCollapsed && (
+						<div className="hidden md:block absolute left-16 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover/profile:opacity-100 pointer-events-none transition-all transform translate-x-2 group-hover/profile:translate-x-0 whitespace-nowrap z-[60] border border-slate-700 shadow-2xl font-medium">
+							{userProfile.name || 'Profile'}
+							<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45" />
 						</div>
 					)}
 				</div>
