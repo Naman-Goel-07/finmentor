@@ -34,8 +34,9 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 	return (
 		<div
 			className={clsx(
+				// Mobile and Desktop Display
 				'fixed inset-y-0 left-0 z-50 bg-[#020617] border-r border-slate-800/60 flex flex-col transition-all duration-300 ease-in-out w-64',
-				'md:relative md:translate-x-0 overflow-x-hidden',
+				'md:relative md:translate-x-0 overflow-visible',
 				isOpen ? 'translate-x-0' : '-translate-x-full',
 				isCollapsed ? 'md:w-20' : 'md:w-64',
 			)}
@@ -96,7 +97,7 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 							<span
 								className={clsx(
 									'font-semibold text-sm tracking-wide transition-opacity whitespace-nowrap',
-									isCollapsed ? 'md:opacity-0 md:hidden' : 'opacity-100',
+									isCollapsed ? 'hidden' : 'opacity-100',
 								)}
 							>
 								{item.name}
@@ -104,7 +105,7 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 
 							{/* IMPROVED TOOLTIP */}
 							{isCollapsed && (
-								<div className="hidden md:block absolute left-16 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[60] border border-slate-700 shadow-2xl font-medium">
+								<div className="hidden md:block absolute left-20 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform -translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[100] border border-slate-700 shadow-2xl font-medium">
 									{item.name}
 									{/* Small Arrow Pointer */}
 									<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45" />
