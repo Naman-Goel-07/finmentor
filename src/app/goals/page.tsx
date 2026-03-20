@@ -7,6 +7,9 @@ import Link from 'next/link'
 export const revalidate = 0
 
 export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+	const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
+
+	// 2. Await searchParams for Next.js 15 compatibility
 	const params = await searchParams
 	const isArchivedView = params.view === 'archived'
 
@@ -14,40 +17,41 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 	let dbError = null
 
 	if (hasSupabaseUrl) {
-		// 1. Fetch all goals
+		// 3. Fetch all goals
 		const { data: goalsData, error: goalsError } = await supabase.from('goals').select('*').order('deadline', { ascending: true })
 
 		if (goalsError) {
 			dbError = goalsError.message
-		} else if (goalsData) {
-			// 2. Filter goals based on the 'view' parameter
-			const filteredGoals = goalsData.filter((g: any) => (isArchivedView ? g.is_archived === true : g.is_archived !== true))
+		} else {
+			// Use a fallback empty array to prevent filtering errors if goalsData is null
+			const allGoals = goalsData || []
+
+			// 4. Filter goals based on the 'view' parameter
+			const filteredGoals = allGoals.filter((g: any) => (isArchivedView ? g.is_archived === true : g.is_archived !== true))
 
 			try {
-				// 3. Fetch all contributions
+				// 5. Fetch all contributions
 				const { data: savingsData, error: savingsError } = await supabase
 					.from('goal_contributions')
 					.select('*')
 					.order('created_at', { ascending: false })
 
-				if (!savingsError && savingsData) {
-					// 4. Merge data and fix the "Initial Amount" reflection
-					goals = filteredGoals.map((g) => {
-						const contributions = savingsData.filter((s) => s.goal_id === g.id)
+				const allSavings = savingsData || []
 
-						// Calculate total: saved_amount (initial) + sum of all contributions
-						const totalContributionAmount = contributions.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
-						const totalSavedCalculated = (g.saved_amount || 0) + totalContributionAmount
+				// 6. Merge data and fix the "Initial Amount" reflection
+				goals = filteredGoals.map((g) => {
+					const contributions = allSavings.filter((s) => s.goal_id === g.id)
 
-						return {
-							...g,
-							goal_savings: contributions,
-							total_saved_calculated: totalSavedCalculated, // Pass this to GoalCard
-						}
-					})
-				} else {
-					goals = filteredGoals
-				}
+					// Calculate total: saved_amount (initial) + sum of all contributions
+					const totalContributionAmount = contributions.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+					const totalSavedCalculated = Number(g.saved_amount || 0) + totalContributionAmount
+
+					return {
+						...g,
+						goal_savings: contributions,
+						total_saved_calculated: totalSavedCalculated,
+					}
+				})
 			} catch (e) {
 				goals = filteredGoals
 			}
