@@ -3,52 +3,41 @@ import supabase from '@/lib/supabaseClient'
 export async function POST(req: Request) {
 	try {
 		const body = await req.json()
-		const { id, amountToAdd, note } = body // Added 'note' from the request body
+		const { id, amountToAdd, note } = body
 
-		// 1. Validation
+		// 1. STRIKING VALIDATION
 		if (!id || amountToAdd === undefined) {
 			return Response.json({ error: 'Goal ID and amount are required.' }, { status: 400 })
 		}
 
-		// 2. Fetch current goal amount
-		const { data: currentGoal, error: fetchError } = await supabase.from('goals').select('saved_amount').eq('id', id).single()
-
-		if (fetchError) {
-			return Response.json({ error: 'Goal not found: ' + fetchError.message }, { status: 404 })
+		const numericAmount = Number(amountToAdd)
+		if (isNaN(numericAmount) || numericAmount <= 0) {
+			return Response.json({ error: 'Please provide a valid positive number.' }, { status: 400 })
 		}
 
-		const newAmount = Number(currentGoal.saved_amount || 0) + Number(amountToAdd)
+		// 2. Inserting into 'goal_contributions'
+		const { error: historyError } = await supabase.from('goal_contributions').insert([
+			{
+				goal_id: id,
+				amount: numericAmount,
+				note: note || 'Quick save',
+			},
+		])
 
-		// 3. Update the main goal balance
-		const { error: updateError } = await supabase.from('goals').update({ saved_amount: newAmount }).eq('id', id)
-
-		if (updateError) {
-			return Response.json({ error: 'Failed to update goal: ' + updateError.message }, { status: 500 })
-		}
-
-		// 4. Record the history entry
-		const { error: historyError } = await supabase
-			.from('goal_contributions')
-			.insert([
-				{
-					goal_id: id,
-					amount: Number(amountToAdd),
-					note: note || 'Quick save',
-				},
-			])
-
+		// 3. ERROR HANDLING
 		if (historyError) {
-			console.error('History recording failed:', historyError.message)
-			// If this fails, the history won't show up on the frontend.
-			return Response.json({ error: 'Balance updated but history failed: ' + historyError.message }, { status: 500 })
+			console.error('Database Error:', historyError.message)
+			return Response.json({ error: 'Failed to record contribution: ' + historyError.message }, { status: 500 })
 		}
 
+		// 4. SUCCESS RESPONSE
 		return Response.json({
 			success: true,
-			saved_amount: newAmount,
+			message: 'Contribution recorded successfully.',
+			addedAmount: numericAmount,
 		})
 	} catch (err: any) {
-		console.error('Error updating goal:', err)
-		return Response.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+		console.error('Unexpected Server Error:', err)
+		return Response.json({ error: 'An unexpected error occurred on the server.' }, { status: 500 })
 	}
 }
