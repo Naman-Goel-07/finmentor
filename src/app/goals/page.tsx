@@ -6,11 +6,12 @@ import Link from 'next/link'
 
 export const revalidate = 0
 
-export default async function GoalsPage({ searchParams }: { searchParams: { view?: string } }) {
+export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ view?: string } }) {
 	const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
 
 	// Check if the user is looking at the archive
-	const isArchivedView = searchParams.view === 'archived'
+	const params = await searchParams;
+	const isArchivedView = params.view === 'archived';
 
 	let goals: any[] = []
 	let dbError = null
