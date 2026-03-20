@@ -121,7 +121,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 					</div>
 					<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{isArchivedView ? 'No archived goals' : 'No goals yet'}</h3>
 					<p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium italic">
-						{isArchivedView ? 'Completed goals will appear here.' : 'Set your first savings target to get started.'}
+						{isArchivedView ? 'Archived goals will appear here.' : 'Set your first savings target to get started.'}
 					</p>
 					{!isArchivedView && <AddGoalModal />}
 				</section>
