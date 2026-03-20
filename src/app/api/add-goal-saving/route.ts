@@ -1,7 +1,13 @@
-import supabase from "@/lib/supabaseClient";
+import { createServerClient } from "@/lib/supabaseClient";
+import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(cookieStore.get('sb-auth-token')?.value || '')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await req.json();
     const { goal_id, amount, note } = body;
 
@@ -14,6 +20,7 @@ export async function POST(req: Request) {
       .from("goals")
       .select("saved_amount")
       .eq("id", goal_id)
+      .eq("user_id", user.id)
       .single();
 
     if (fetchError) {
@@ -26,7 +33,7 @@ export async function POST(req: Request) {
     const { error: insertError } = await supabase
       .from("goal_savings")
       .insert([
-        { goal_id, amount: Number(amount), note: note || "Custom savings addition" }
+        { user_id: user.id, goal_id, amount: Number(amount), note: note || "Custom savings addition" }
       ]);
       
     if (insertError) {
@@ -38,14 +45,15 @@ export async function POST(req: Request) {
     const { error: updateError } = await supabase
       .from("goals")
       .update({ saved_amount: newAmount })
-      .eq("id", goal_id);
+      .eq("id", goal_id)
+      .eq("user_id", user.id);
 
     if (updateError) {
       return Response.json({ error: updateError.message }, { status: 500 });
     }
 
     return Response.json({ success: true, saved_amount: newAmount });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Error adding goal saving:", err);
     return Response.json({ error: "An unexpected error occurred." }, { status: 500 });
   }

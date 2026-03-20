@@ -1,46 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import supabase from '@/lib/supabaseClient'
 import { User, Mail, Shield, Bell, Save, Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-
-// The ID we created in Supabase manually
-const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
+import { useAuth } from '@/context/AuthContext'
 
 export default function ProfilePage() {
-	const [loading, setLoading] = useState(true)
+	const { user, setUser } = useAuth()
 	const [saving, setSaving] = useState(false)
 	const [message, setMessage] = useState({ type: '', text: '' })
-	const router = useRouter()
 
 	const [formData, setFormData] = useState({
-		full_name: '',
-		email: '',
+		full_name: user?.full_name || '',
+		email: user?.email || '',
 	})
-
-	useEffect(() => {
-		async function fetchProfile() {
-			const { data, error } = await supabase.from('profiles').select('full_name, email').eq('id', DEMO_USER_ID).single()
-
-			if (data) {
-				setFormData({
-					full_name: data.full_name || '',
-					email: data.email || '',
-				})
-			}
-			setLoading(false)
-		}
-		fetchProfile()
-	}, [])
 
 	const handleUpdate = async (e: React.FormEvent) => {
 		e.preventDefault()
+		if (!user) return
 		setSaving(true)
 		setMessage({ type: '', text: '' })
 
 		const { error } = await supabase.from('profiles').upsert({
-			id: DEMO_USER_ID,
+			id: user.id,
 			full_name: formData.full_name,
 			email: formData.email,
 		})
@@ -49,19 +31,13 @@ export default function ProfilePage() {
 			console.error('Supabase Error:', error.message)
 			setMessage({ type: 'error', text: 'Failed to update profile.' })
 		} else {
-			setMessage({ type: 'success', text: 'Changes saved! Realtime sync active. ✨' })
-			// Hard refresh to sync the Sidebar and Header
-			setTimeout(() => window.location.reload(), 800)
+			setMessage({ type: 'success', text: 'Changes saved!' })
+			setUser((prev) => (prev ? { ...prev, full_name: formData.full_name, email: formData.email } : prev))
 		}
 		setSaving(false)
 	}
 
-	if (loading)
-		return (
-			<div className="min-h-[60vh] flex flex-col items-center justify-center">
-				<Loader2 className="animate-spin text-blue-500" size={40} />
-			</div>
-		)
+	if (!user) return null
 
 	return (
 		<div className="max-w-5xl mx-auto animate-in fade-in duration-500">

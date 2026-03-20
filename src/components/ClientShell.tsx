@@ -2,70 +2,62 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
-import { Menu, User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Menu, User, LogOut, ChevronDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import supabase from '@/lib/supabaseClient'
+import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
-
-const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [profileOpen, setProfileOpen] = useState(false)
-	const [profile, setProfile] = useState({ name: '', avatar: '' })
+	const { user, loading, setUser } = useAuth()
+	const pathname = usePathname()
 
 	useEffect(() => {
-		let channel: any
-
-		async function getProfile() {
-			const { data: profileData, error } = await supabase.from('profiles').select('full_name').eq('id', DEMO_USER_ID).single()
-
-			if (error) {
-				console.error('Supabase Fetch Error:', error.message)
-			}
-
-			if (profileData) {
-				setProfile({
-					name: profileData.full_name || '',
-					avatar: '',
-				})
-			}
-
-			channel = supabase
-				.channel(`profile-demo`)
-				.on(
-					'postgres_changes',
-					{
-						event: 'UPDATE',
-						schema: 'public',
-						table: 'profiles',
-						filter: `id=eq.${DEMO_USER_ID}`,
-					},
-					(payload) => {
-						if (payload?.new) {
-							setProfile({
-								name: payload.new.full_name || '',
-								avatar: '',
-							})
-						}
-					},
-				)
-				.subscribe()
-		}
-
-		getProfile()
+		if (!user) return
+		const channel = supabase
+			.channel(`profile-update`)
+			.on(
+				'postgres_changes',
+				{
+					event: 'UPDATE',
+					schema: 'public',
+					table: 'profiles',
+					filter: `id=eq.${user.id}`,
+				},
+				(payload) => {
+					if (payload?.new) {
+						setUser((prev) => (prev ? { ...prev, full_name: payload.new.full_name || '' } : prev))
+					}
+				},
+			)
+			.subscribe()
 
 		return () => {
-			if (channel) {
-				supabase.removeChannel(channel)
-			}
+			supabase.removeChannel(channel)
 		}
-	}, [])
+	}, [user, setUser])
+
+	// 1. Loading UI
+	if (loading) {
+		return (
+			<div className="flex bg-[#020617] h-screen w-full items-center justify-center flex-col gap-4 text-slate-300">
+				<Loader2 className="animate-spin" size={48} />
+				<p className="font-semibold tracking-wide animate-pulse">Warming up your dashboard...</p>
+			</div>
+		)
+	}
+
+	// 2. Hide Shell for public auth routes
+	const isAuthPage = pathname === '/login' || pathname === '/signup'
+	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
 
 	return (
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
 			{/* 1. SIDEBAR: Ensure Sidebar.tsx uses 'fixed' on mobile */}
-			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={profile} />
+			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={{ name: user?.full_name || user?.email || '', avatar: '' }} />
 
 			{/* 2. MAIN CONTENT WRAPPER */}
 			{/* Added 'min-w-0' and 'w-full' to force it to ignore the sidebar's width on mobile */}
@@ -84,7 +76,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 						</div>
 
 						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
-							{profile.name ? `Welcome back, ${profile.name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
+							{user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
 						</div>
 
 						<div className="relative">
@@ -103,7 +95,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 									<div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
 									<div className="absolute right-0 mt-2 w-56 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 p-1.5 z-20 animate-in fade-in zoom-in duration-200">
 										<div className="px-3 py-2 border-b border-slate-800 mb-1">
-											<p className="text-sm font-bold text-white truncate">{profile.name || 'Demo User'}</p>
+											<p className="text-sm font-bold text-white truncate">{user?.full_name || user?.email || 'User'}</p>
 										</div>
 										<Link
 											href="/profile"
@@ -113,12 +105,17 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 											<User size={16} /> Profile Settings
 										</Link>
 										<div className="h-px bg-slate-800 my-1 mx-2" />
-										<Link
-											href="/"
+										<button
+											onClick={async () => {
+												setProfileOpen(false)
+												await fetch('/api/auth/logout', { method: 'POST' })
+												await supabase.auth.signOut()
+												window.location.href = '/login'
+											}}
 											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
 										>
-											<LogOut size={16} /> Reset Demo
-										</Link>
+											<LogOut size={16} /> Sign Out
+										</button>
 									</div>
 								</>
 							)}

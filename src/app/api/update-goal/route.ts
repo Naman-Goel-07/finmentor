@@ -1,7 +1,13 @@
-import supabase from '@/lib/supabaseClient'
+import { createServerClient } from '@/lib/supabaseClient'
+import { cookies } from 'next/headers'
 
 export async function POST(req: Request) {
 	try {
+        const cookieStore = await cookies()
+        const supabase = createServerClient(cookieStore.get('sb-auth-token')?.value || '')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
+
 		const body = await req.json()
 		const { id, amountToAdd, note } = body
 
@@ -18,6 +24,7 @@ export async function POST(req: Request) {
 		// 2. Inserting into 'goal_contributions'
 		const { error: historyError } = await supabase.from('goal_contributions').insert([
 			{
+                user_id: user.id,
 				goal_id: id,
 				amount: numericAmount,
 				note: note || 'Quick save',

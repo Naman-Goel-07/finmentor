@@ -1,3 +1,5 @@
+import { createServerClient } from '@/lib/supabaseClient'
+import { cookies } from 'next/headers'
 import { GoogleGenAI } from '@google/genai'
 import { NextResponse } from 'next/server'
 
@@ -8,6 +10,11 @@ const client = new GoogleGenAI({
 
 export async function POST(req: Request) {
 	try {
+        const cookieStore = await cookies()
+        const supabase = createServerClient(cookieStore.get('sb-auth-token')?.value || '')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
 		const { income, expenses } = await req.json()
 
 		if (!process.env.GEMINI_API_KEY) {

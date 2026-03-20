@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import ClientShell from '@/components/ClientShell'
+import { AuthProvider } from '@/context/AuthContext'
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',
@@ -33,7 +34,9 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			  <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900 overflow-x-hidden overflow-y-auto min-h-screen`}>
-				<ClientShell>{children}</ClientShell>
+				<AuthProvider>
+					<ClientShell>{children}</ClientShell>
+				</AuthProvider>
 			</body>
 		</html>
 	)

@@ -1,4 +1,5 @@
-import supabase from '@/lib/supabaseClient'
+import { createServerClient } from '@/lib/supabaseClient'
+import { cookies } from 'next/headers'
 import AddGoalModal from '@/components/AddGoalModal'
 import GoalCard from '@/components/GoalCard'
 import { AlertCircle, Target, ArrowLeft, Archive } from 'lucide-react'
@@ -17,44 +18,54 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 	let dbError = null
 
 	if (hasSupabaseUrl) {
-		// 3. Fetch all goals
-		const { data: goalsData, error: goalsError } = await supabase.from('goals').select('*').order('deadline', { ascending: true })
+		const cookieStore = await cookies()
+		const token = cookieStore.get('sb-auth-token')?.value || ''
+		const supabase = createServerClient(token)
+		
+		try {
+			const { data: { user } } = await supabase.auth.getUser()
 
-		if (goalsError) {
-			dbError = goalsError.message
-		} else {
-			// Use a fallback empty array to prevent filtering errors if goalsData is null
-			const allGoals = goalsData || []
+			if (user) {
+				// 3. Fetch all goals
+				const { data: goalsData, error: goalsError } = await supabase.from('goals').select('*').eq('user_id', user.id).order('deadline', { ascending: true })
 
-			// 4. Filter goals based on the 'view' parameter
-			const filteredGoals = allGoals.filter((g: any) => (isArchivedView ? g.is_archived === true : g.is_archived !== true))
+				if (goalsError) {
+					dbError = goalsError.message
+				} else {
+					// Use a fallback empty array to prevent filtering errors if goalsData is null
+					const allGoals = goalsData || []
 
-			try {
-				// 5. Fetch all contributions
-				const { data: savingsData, error: savingsError } = await supabase
-					.from('goal_contributions')
-					.select('*')
-					.order('created_at', { ascending: false })
+					// 4. Filter goals based on the 'view' parameter
+					const filteredGoals = allGoals.filter((g: any) => (isArchivedView ? g.is_archived === true : g.is_archived !== true))
 
-				const allSavings = savingsData || []
+					// 5. Fetch all contributions
+					const { data: savingsData, error: savingsError } = await supabase
+						.from('goal_contributions')
+						.select('*')
+						.eq('user_id', user.id)
+						.order('created_at', { ascending: false })
 
-				// 6. Merge data and fix the "Initial Amount" reflection
-				goals = filteredGoals.map((g) => {
-					const contributions = allSavings.filter((s) => s.goal_id === g.id)
+					const allSavings = savingsData || []
 
-					// Calculate total: saved_amount (initial) + sum of all contributions
-					const totalContributionAmount = contributions.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
-					const totalSavedCalculated = Number(g.saved_amount || 0) + totalContributionAmount
+					// 6. Merge data and fix the "Initial Amount" reflection
+					goals = filteredGoals.map((g) => {
+						const contributions = allSavings.filter((s) => s.goal_id === g.id)
 
-					return {
-						...g,
-						goal_savings: contributions,
-						total_saved_calculated: totalSavedCalculated,
-					}
-				})
-			} catch (e) {
-				goals = filteredGoals
+						// Calculate total: saved_amount (initial) + sum of all contributions
+						const totalContributionAmount = contributions.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+						const totalSavedCalculated = Number(g.saved_amount || 0) + totalContributionAmount
+
+						return {
+							...g,
+							goal_savings: contributions,
+							total_saved_calculated: totalSavedCalculated,
+						}
+					})
+				}
 			}
+		} catch (err: any) {
+			dbError = "Network connection failed. Check your Supabase URL."
+			console.error("Goals Server Fetch Error:", err)
 		}
 	}
 
@@ -115,15 +126,24 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 
 			{/* Empty State */}
 			{isEmptyDatabase ? (
-				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-800/60 p-16 text-center backdrop-blur-sm">
-					<div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
-						<Target className="text-amber-500" size={40} />
+				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-20 text-center backdrop-blur-sm relative overflow-hidden group animate-in zoom-in-95 duration-500">
+					<div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+					<div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
+						<Target className="text-amber-400 drop-shadow-lg" size={48} />
 					</div>
-					<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{isArchivedView ? 'No archived goals' : 'No goals yet'}</h3>
-					<p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium italic">
-						{isArchivedView ? 'Archived goals will appear here.' : 'Set your first savings target to get started.'}
+					<h3 className="text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight z-10 relative">
+						{isArchivedView ? 'Clean slate! 🗃️' : 'You haven\'t created any goals yet'}
+					</h3>
+					<p className="text-slate-400 max-w-md mx-auto mb-10 font-medium text-[15px] leading-relaxed z-10 relative">
+						{isArchivedView 
+							? 'You have no archived goals yet. Focus on crushing your active objectives and watch your financial profile grow!' 
+							: 'Break down your financial dreams into achievable milestones. Set your first savings target below.'}
 					</p>
-					{!isArchivedView && <AddGoalModal />}
+					{!isArchivedView && (
+						<div className="z-10 relative shadow-amber-500/10 shadow-2xl rounded-xl inline-block">
+							<AddGoalModal />
+						</div>
+					)}
 				</section>
 			) : (
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
