@@ -6,12 +6,9 @@ import Link from 'next/link'
 
 export const revalidate = 0
 
-export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ view?: string } }) {
-	const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
-
-	// Check if the user is looking at the archive
-	const params = await searchParams;
-	const isArchivedView = params.view === 'archived';
+export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+	const params = await searchParams
+	const isArchivedView = params.view === 'archived'
 
 	let goals: any[] = []
 	let dbError = null
@@ -39,7 +36,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 						const contributions = savingsData.filter((s) => s.goal_id === g.id)
 
 						// Calculate total: saved_amount (initial) + sum of all contributions
-						const totalContributionAmount = contributions.reduce((acc, curr) => acc + curr.amount, 0)
+						const totalContributionAmount = contributions.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
 						const totalSavedCalculated = (g.saved_amount || 0) + totalContributionAmount
 
 						return {
