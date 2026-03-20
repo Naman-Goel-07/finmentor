@@ -77,7 +77,7 @@ export default async function GoalsPage() {
 					<AddGoalModal />
 				</section>
 			) : (
-				/* ✅ Added 'items-start' to prevent adjacent cards from stretching when one expands */
+				/* Added 'items-start' to prevent adjacent cards from stretching when one expands */
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 					{goals.map((goal) => (
 						<GoalCard key={goal.id} goal={goal} />

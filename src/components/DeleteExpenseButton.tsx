@@ -21,7 +21,7 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 			alert('Failed to delete record.')
 			setIsDeleting(false)
 		} else {
-			// ✅ Next.js 'Magic': Refreshes the Server Component data without a full page reload
+			// Refreshes the Server Component data without a full page reload
 			router.refresh()
 		}
 	}

@@ -9,7 +9,6 @@ export async function POST(req: Request) {
 			return Response.json({ error: 'Goal name, target amount, and deadline are required.' }, { status: 400 })
 		}
 
-		// ✅ FIX: Added .select().single() to return the inserted row as an object
 		const { data, error } = await supabase
 			.from('goals')
 			.insert([

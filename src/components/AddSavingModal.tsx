@@ -17,7 +17,6 @@ export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: 
 		setError('')
 
 		try {
-			// UPDATED: Points to the same unified endpoint we created earlier
 			const res = await fetch('/api/update-goal', {
 				method: 'POST',
 				headers: {

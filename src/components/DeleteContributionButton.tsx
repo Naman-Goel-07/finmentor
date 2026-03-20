@@ -2,7 +2,7 @@
 
 import { X, Loader2 } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation' // ✅ Added for server-sync
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 interface DeleteProps {
@@ -15,11 +15,8 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 	const [isDeleting, setIsDeleting] = useState(false)
 
 	const handleDelete = async (e: React.MouseEvent) => {
-		// 🛑 Prevents the GoalCard from toggling/expanding
+		// Prevents the GoalCard from toggling/expanding
 		e.stopPropagation()
-
-		// Optional: Add a quick confirm so you don't delete by accident during the demo
-		// if (!confirm("Delete this saving?")) return
 
 		setIsDeleting(true)
 
@@ -28,10 +25,10 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 
 			if (error) throw error
 
-			// ✅ 1. Trigger the local nudge (updates the Graph & Slider math)
+			// 1. Trigger the local nudge (updates the Graph & Slider math)
 			if (onSuccess) onSuccess()
 
-			// ✅ 2. Tell Next.js to re-fetch the server data
+			// 2. Tell Next.js to re-fetch the server data
 			router.refresh()
 		} catch (err: any) {
 			console.error('Delete failed:', err.message)

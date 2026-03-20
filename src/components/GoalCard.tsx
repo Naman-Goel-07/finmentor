@@ -16,10 +16,10 @@ export default function GoalCard({ goal }: { goal: any }) {
 	const [expanded, setExpanded] = useState(false)
 	const [showSavingModal, setShowSavingModal] = useState(false)
 
-	// ✅ THE NUDGE: Forces child components to re-calculate cumulative logic
+	// THE NUDGE: Forces child components to re-calculate cumulative logic
 	const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-	// ✅ THE DYNAMIC TRUTH: Calculate total from history, not the stale database column
+	// THE DYNAMIC TRUTH: Calculate total from history, not the stale database column
 	const savingsHistory = goal.goal_savings || []
 	const dynamicTotalSaved = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
 
@@ -51,7 +51,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 
 	const smartSuggestion = !isCompleted && daysRemaining > 0 && remaining > 0 ? Math.ceil(remaining / daysRemaining) : 0
 
-	// ✅ HANDLER: Clears cache and triggers Next.js re-fetch
+	// HANDLER: Clears cache and triggers Next.js re-fetch
 	const handleManualRefresh = () => {
 		setRefreshTrigger((prev) => prev + 1)
 		router.refresh()
@@ -131,14 +131,14 @@ export default function GoalCard({ goal }: { goal: any }) {
 				<div className="pt-2">
 					<div className="flex justify-between text-sm mb-2 items-end">
 						<div>
-							{/* ✅ Dynamic savings amount */}
+							{/* Dynamic savings amount */}
 							<span className="text-2xl font-black text-gray-900">₹{dynamicTotalSaved.toLocaleString()}</span>
 							<span className="text-gray-400 ml-1 text-xs">/ ₹{goal.target_amount.toLocaleString()}</span>
 						</div>
 						<span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{percent}% Saved</span>
 					</div>
 
-					{/* ✅ THE SLIDER: Now responds instantly to 'percent' */}
+					{/* THE SLIDER: It responds instantly to 'percent' */}
 					<div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
 						<div
 							className={clsx('h-full rounded-full transition-all duration-1000 ease-out', isCompleted ? 'bg-green-500' : 'bg-blue-600')}
@@ -163,7 +163,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 
 				{expanded && (
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
-						{/* ✅ CHART: Fully synchronized with history */}
+						{/* CHART: Fully synchronized with history */}
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
 						{isCompleted ? (
@@ -221,7 +221,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 											</div>
 											<div className="flex items-center gap-3">
 												<span className="text-xs font-black text-green-600">+₹{entry.amount.toLocaleString()}</span>
-												{/* ✅ DELETE: Calls parent refresh to sync slider and graph */}
+												{/* DELETE: Calls parent refresh to sync slider and graph */}
 												<DeleteContributionButton id={entry.id} onSuccess={handleManualRefresh} />
 											</div>
 										</div>

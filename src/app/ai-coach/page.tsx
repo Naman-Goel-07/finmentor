@@ -18,7 +18,7 @@ export default function AICoachPage() {
 
 		try {
 			// 1. Fetch recent expenses (Limited to 10 to save API Quota/Tokens)
-			const { data: expenses, error: dbError } = await supabase.from('expenses').select('*').order('date', { ascending: false }).limit(10) // ✅ Crucial for preventing 429 Quota errors
+			const { data: expenses, error: dbError } = await supabase.from('expenses').select('*').order('date', { ascending: false }).limit(10)
 
 			if (dbError) throw new Error('Database error: ' + dbError.message)
 
@@ -41,7 +41,6 @@ export default function AICoachPage() {
 			const data = await response.json()
 
 			if (!response.ok) {
-				// ✅ Better error messaging for the 429 Quota issue
 				if (response.status === 429) {
 					throw new Error('AI is overwhelmed! Google Free Tier limit reached. Please wait 60 seconds and try again.')
 				}

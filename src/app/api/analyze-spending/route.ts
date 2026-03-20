@@ -41,8 +41,7 @@ export async function POST(req: Request) {
 	} catch (error: any) {
 		console.error('AI Analysis Error:', error)
 
-		// SAFETY FALLBACK: If you hit a 429 (Quota) error, return this mock roast
-		// This ensures your UI NEVER shows an error message during a presentation.
+		// SAFETY FALLBACK: Incase of a 429 (Quota) error, return this mock roast
 		if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('404')) {
 			return NextResponse.json({
 				advice: `# 🚨 Coach is in High-Demand!
@@ -52,7 +51,7 @@ export async function POST(req: Request) {
 
 						## Instant Insights
 						* **Overspending:** Looks like Food and Subscriptions are your wallet's biggest enemies.
-						* **Small Win:** Try the "No-Spend Weekend" challenge to save ₹800.
+						* **Small Win:** Try the "No-Spend Weekend" challenge to save some money.
 
 						## SIP Fact
 						**Saving just ₹1,000/month at 12% return gets you ₹13,200 in a year.**

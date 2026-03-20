@@ -62,7 +62,6 @@ export default function LearningPage() {
 						</div>
 						<p className="text-gray-600 flex-grow text-sm md:text-base">{lesson.description}</p>
 
-						{/* ✅ UPDATED: Wrapped button in an external link tag */}
 						<a
 							href={lesson.url}
 							target="_blank"

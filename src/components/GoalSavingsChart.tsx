@@ -10,7 +10,7 @@ interface GoalSavingsChartProps {
 }
 
 export default function GoalSavingsChart({ savings, refreshTrigger = 0 }: GoalSavingsChartProps) {
-	// ✅ Recalculates the cumulative timeline whenever savings or the nudge changes
+	// Recalculates the cumulative timeline whenever savings or the nudge changes
 	const chartData = useMemo(() => {
 		if (!savings || savings.length === 0) return []
 
@@ -45,7 +45,7 @@ export default function GoalSavingsChart({ savings, refreshTrigger = 0 }: GoalSa
 		<div className="w-full h-48 mt-6">
 			<p className="text-[10px] font-black text-gray-400 mb-3 uppercase tracking-[0.2em]">Savings Progress</p>
 			<ResponsiveContainer width="100%" height="100%">
-				{/* ✅ The 'key' forces a hard-reset of the SVG. 
+				{/* The 'key' forces a hard-reset of the SVG. 
                 Without this, Recharts might not update the Y-axis scale after a deletion. */}
 				<LineChart key={`chart-${chartData.length}-${refreshTrigger}`} data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
 					<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />

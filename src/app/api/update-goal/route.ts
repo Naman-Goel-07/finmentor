@@ -26,14 +26,14 @@ export async function POST(req: Request) {
 			return Response.json({ error: 'Failed to update goal: ' + updateError.message }, { status: 500 })
 		}
 
-		// 4. Record the history entry - MATCHING YOUR SCREENSHOT TABLE NAME
+		// 4. Record the history entry
 		const { error: historyError } = await supabase
-			.from('goal_contributions') // CHANGED THIS from goal_savings
+			.from('goal_contributions')
 			.insert([
 				{
 					goal_id: id,
 					amount: Number(amountToAdd),
-					note: note || 'Quick save', // Now uses the note passed from your modal
+					note: note || 'Quick save',
 				},
 			])
 

@@ -9,7 +9,6 @@ export async function POST(req: Request) {
       return Response.json({ error: "Goal ID is required." }, { status: 400 });
     }
 
-    // Optional: Delete from goal_savings first (if ON DELETE CASCADE is not set)
     await supabase.from("goal_savings").delete().eq("goal_id", id);
 
     // Delete the goal

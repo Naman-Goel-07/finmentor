@@ -28,7 +28,7 @@ export default async function DashboardPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500">
-			{/* ✅ HEADER: Symmetrical with Neutral Gray Button Support */}
+			{/* HEADER: Symmetrical with Neutral Gray Button Support */}
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
 					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent leading-tight">
@@ -37,9 +37,6 @@ export default async function DashboardPage() {
 					<p className="text-slate-400 mt-2 font-medium italic">Here&apos;s what&apos;s happening with your money.</p>
 				</div>
 
-				{/* Note: The AddExpenseModal should contain the <button> with the 
-                    gray-100 background we discussed to ensure consistency. 
-                */}
 				<div className="shrink-0">
 					<AddExpenseModal />
 				</div>

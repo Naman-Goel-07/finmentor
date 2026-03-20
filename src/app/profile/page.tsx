@@ -5,7 +5,7 @@ import supabase from '@/lib/supabaseClient'
 import { User, Mail, Shield, Bell, Save, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-// ✅ The ID we created in Supabase manually
+// The ID we created in Supabase manually
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 export default function ProfilePage() {
@@ -39,7 +39,6 @@ export default function ProfilePage() {
 		setSaving(true)
 		setMessage({ type: '', text: '' })
 
-		// ✅ FIXED: Removed updated_at so it doesn't crash your database
 		const { error } = await supabase.from('profiles').upsert({
 			id: DEMO_USER_ID,
 			full_name: formData.full_name,
@@ -51,7 +50,7 @@ export default function ProfilePage() {
 			setMessage({ type: 'error', text: 'Failed to update profile.' })
 		} else {
 			setMessage({ type: 'success', text: 'Changes saved! Realtime sync active. ✨' })
-			// ✅ Hard refresh to sync the Sidebar and Header
+			// Hard refresh to sync the Sidebar and Header
 			setTimeout(() => window.location.reload(), 800)
 		}
 		setSaving(false)

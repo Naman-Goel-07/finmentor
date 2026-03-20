@@ -32,7 +32,6 @@ export async function POST(req: Request) {
     if (insertError) {
        console.error("Failed to insert into goal_savings, but continuing anyway:", insertError);
        // We log but don't strictly fail just in case the user hasn't created the table yet.
-       // The prompt says "Ensure Supabase updates both tables correctly" so we try.
     }
 
     // 3. Update goal saved_amount
