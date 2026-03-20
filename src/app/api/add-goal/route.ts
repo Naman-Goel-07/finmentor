@@ -5,32 +5,38 @@ export async function POST(req: Request) {
 		const body = await req.json()
 		const { goal_name, target_amount, saved_amount, deadline } = body
 
-		if (!goal_name || target_amount === undefined || !deadline) {
-			return Response.json({ error: 'Goal name, target amount, and deadline are required.' }, { status: 400 })
-		}
-
-		const { data, error } = await supabase
+		// 1. Insert the Goal
+		const { data: goalData, error: goalError } = await supabase
 			.from('goals')
 			.insert([
 				{
 					goal_name,
 					target_amount,
-					saved_amount: saved_amount || 0, // Ensure it's not null
+					saved_amount: saved_amount || 0,
 					deadline,
+					is_archived: false, // Default to active
 				},
 			])
 			.select()
 			.single()
 
-		if (error) {
-			// If the error is still "Policy violates RLS", remember to run the SQL fix
-			console.error('Supabase Error:', error)
-			return Response.json({ error: error.message }, { status: 500 })
+		if (goalError) return Response.json({ error: goalError.message }, { status: 500 })
+
+		// 2. IMPORTANT: If there's an initial amount, create a contribution record
+		if (saved_amount > 0) {
+			const { error: contributionError } = await supabase.from('goal_contributions').insert([
+				{
+					goal_id: goalData.id,
+					amount: saved_amount,
+					description: 'Initial Deposit',
+				},
+			])
+
+			if (contributionError) console.error('Failed to create initial contribution:', contributionError)
 		}
 
-		return Response.json({ success: true, data })
+		return Response.json({ success: true, data: goalData })
 	} catch (err: any) {
-		console.error('Error inserting goal:', err)
 		return Response.json({ error: 'An unexpected error occurred.' }, { status: 500 })
 	}
 }

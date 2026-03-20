@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { format } from 'date-fns'
@@ -15,20 +15,16 @@ export default function GoalCard({ goal }: { goal: any }) {
 	const [errorAmount, setErrorAmount] = useState<string | null>(null)
 	const [expanded, setExpanded] = useState(false)
 	const [showSavingModal, setShowSavingModal] = useState(false)
-
-	// THE NUDGE: Forces child components to re-calculate cumulative logic
 	const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-	// THE DYNAMIC TRUTH: Calculate total from history, not the stale database column
 	const savingsHistory = goal.goal_savings || []
-	const dynamicTotalSaved = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
+	const contributionsSum = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
+	const dynamicTotalSaved = (Number(goal.saved_amount) || 0) + contributionsSum
 
-	// Use the dynamic total for all calculations to ensure instant slider response
 	const percent = goal.target_amount > 0 ? Math.min(Math.round((dynamicTotalSaved / goal.target_amount) * 100), 100) : 0
 	const remaining = Math.max(goal.target_amount - dynamicTotalSaved, 0)
 	const isCompleted = dynamicTotalSaved >= goal.target_amount
 
-	// Status and Deadline calculation
 	const rawDaysRemaining = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 	const daysRemaining = Math.max(rawDaysRemaining, 0)
 
@@ -51,7 +47,6 @@ export default function GoalCard({ goal }: { goal: any }) {
 
 	const smartSuggestion = !isCompleted && daysRemaining > 0 && remaining > 0 ? Math.ceil(remaining / daysRemaining) : 0
 
-	// HANDLER: Clears cache and triggers Next.js re-fetch
 	const handleManualRefresh = () => {
 		setRefreshTrigger((prev) => prev + 1)
 		router.refresh()
@@ -75,15 +70,21 @@ export default function GoalCard({ goal }: { goal: any }) {
 		}
 	}
 
+	// 2. Sends the toggle state to API
 	const handleGoalAction = async (action: 'archive' | 'delete') => {
 		if (action === 'delete' && !confirm('Delete this entire goal? History will be lost!')) return
 
 		setLoadingAction(action)
 		try {
+			const body =
+				action === 'archive'
+					? { id: goal.id, is_archived: !goal.is_archived } // Toggle
+					: { id: goal.id }
+
 			const res = await fetch(`/api/${action}-goal`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id: goal.id }),
+				body: JSON.stringify(body),
 			})
 			if (!res.ok) throw new Error(`${action} failed`)
 			router.refresh()
@@ -101,6 +102,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 				className={clsx(
 					'bg-white p-4 md:p-6 rounded-3xl shadow-sm border flex flex-col transition-all duration-300 w-full group',
 					isCompleted ? 'border-green-200 bg-green-50/10' : 'border-gray-100',
+					goal.is_archived && 'opacity-75 grayscale-[0.5]', // Visual cue for archived items
 				)}
 			>
 				<div className="flex justify-between items-start mb-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
@@ -121,7 +123,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 								</span>
 							</h3>
 							<p className={clsx('text-sm mt-1 font-medium', rawDaysRemaining < 0 && !isCompleted ? 'text-red-500' : 'text-gray-500')}>
-								{deadlineText} <span className="font-normal text-gray-400">({format(new Date(goal.deadline), 'dd/MM')})</span>
+								{deadlineText} <span className="font-normal text-gray-400">({format(new Date(goal.deadline), 'dd/MM/yyyy')})</span>
 							</p>
 						</div>
 					</div>
@@ -131,14 +133,12 @@ export default function GoalCard({ goal }: { goal: any }) {
 				<div className="pt-2">
 					<div className="flex justify-between text-sm mb-2 items-end">
 						<div>
-							{/* Dynamic savings amount */}
 							<span className="text-2xl font-black text-gray-900">₹{dynamicTotalSaved.toLocaleString()}</span>
 							<span className="text-gray-400 ml-1 text-xs">/ ₹{goal.target_amount.toLocaleString()}</span>
 						</div>
 						<span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{percent}% Saved</span>
 					</div>
 
-					{/* THE SLIDER: It responds instantly to 'percent' */}
 					<div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
 						<div
 							className={clsx('h-full rounded-full transition-all duration-1000 ease-out', isCompleted ? 'bg-green-500' : 'bg-blue-600')}
@@ -163,26 +163,44 @@ export default function GoalCard({ goal }: { goal: any }) {
 
 				{expanded && (
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
-						{/* CHART: Fully synchronized with history */}
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
-						{isCompleted ? (
-							<div className="flex gap-2 mb-6 mt-6">
-								<button
-									onClick={() => handleGoalAction('archive')}
-									className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2"
-								>
-									<Archive size={14} /> Archive
-								</button>
-								<button
-									onClick={() => handleGoalAction('delete')}
-									className="flex-1 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 flex justify-center items-center gap-2"
-								>
-									<Trash2 size={14} /> Delete
-								</button>
-							</div>
-						) : (
-							<div className="mb-6 mt-6">
+						{/* 3. SHOW ACTIONS FOR ALL GOALS, NOT JUST COMPLETED */}
+						<div className="flex gap-2 mb-6 mt-6">
+							<button
+								onClick={() => handleGoalAction('archive')}
+								disabled={loadingAction === 'archive'}
+								className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2 disabled:opacity-50"
+							>
+								{loadingAction === 'archive' ? (
+									<Loader2 size={14} className="animate-spin" />
+								) : goal.is_archived ? (
+									<>
+										<RotateCcw size={14} /> Restore
+									</>
+								) : (
+									<>
+										<Archive size={14} /> Archive
+									</>
+								)}
+							</button>
+							<button
+								onClick={() => handleGoalAction('delete')}
+								disabled={loadingAction === 'delete'}
+								className="flex-1 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 flex justify-center items-center gap-2 disabled:opacity-50"
+							>
+								{loadingAction === 'delete' ? (
+									<Loader2 size={14} className="animate-spin" />
+								) : (
+									<>
+										<Trash2 size={14} /> Delete
+									</>
+								)}
+							</button>
+						</div>
+
+						{!isCompleted && !goal.is_archived && (
+							<div className="mb-6">
 								<div className="flex justify-between items-center mb-3">
 									<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Save</p>
 									<button onClick={() => setShowSavingModal(true)} className="text-[10px] font-bold text-blue-600 hover:underline">
@@ -221,7 +239,6 @@ export default function GoalCard({ goal }: { goal: any }) {
 											</div>
 											<div className="flex items-center gap-3">
 												<span className="text-xs font-black text-green-600">+₹{entry.amount.toLocaleString()}</span>
-												{/* DELETE: Calls parent refresh to sync slider and graph */}
 												<DeleteContributionButton id={entry.id} onSuccess={handleManualRefresh} />
 											</div>
 										</div>

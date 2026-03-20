@@ -1,40 +1,57 @@
 import supabase from '@/lib/supabaseClient'
 import AddGoalModal from '@/components/AddGoalModal'
 import GoalCard from '@/components/GoalCard'
-import { AlertCircle, Target } from 'lucide-react'
+import { AlertCircle, Target, ArrowLeft, Archive } from 'lucide-react'
+import Link from 'next/link'
 
 export const revalidate = 0
 
-export default async function GoalsPage() {
+export default async function GoalsPage({ searchParams }: { searchParams: { view?: string } }) {
 	const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
+
+	// Check if the user is looking at the archive
+	const isArchivedView = searchParams.view === 'archived'
 
 	let goals: any[] = []
 	let dbError = null
 
 	if (hasSupabaseUrl) {
+		// 1. Fetch all goals
 		const { data: goalsData, error: goalsError } = await supabase.from('goals').select('*').order('deadline', { ascending: true })
 
 		if (goalsError) {
 			dbError = goalsError.message
 		} else if (goalsData) {
-			const activeGoals = goalsData.filter((g: any) => g.is_archived !== true)
+			// 2. Filter goals based on the 'view' parameter
+			const filteredGoals = goalsData.filter((g: any) => (isArchivedView ? g.is_archived === true : g.is_archived !== true))
 
 			try {
+				// 3. Fetch all contributions
 				const { data: savingsData, error: savingsError } = await supabase
 					.from('goal_contributions')
 					.select('*')
 					.order('created_at', { ascending: false })
 
 				if (!savingsError && savingsData) {
-					goals = activeGoals.map((g) => ({
-						...g,
-						goal_savings: savingsData.filter((s) => s.goal_id === g.id),
-					}))
+					// 4. Merge data and fix the "Initial Amount" reflection
+					goals = filteredGoals.map((g) => {
+						const contributions = savingsData.filter((s) => s.goal_id === g.id)
+
+						// Calculate total: saved_amount (initial) + sum of all contributions
+						const totalContributionAmount = contributions.reduce((acc, curr) => acc + curr.amount, 0)
+						const totalSavedCalculated = (g.saved_amount || 0) + totalContributionAmount
+
+						return {
+							...g,
+							goal_savings: contributions,
+							total_saved_calculated: totalSavedCalculated, // Pass this to GoalCard
+						}
+					})
 				} else {
-					goals = activeGoals
+					goals = filteredGoals
 				}
 			} catch (e) {
-				goals = activeGoals
+				goals = filteredGoals
 			}
 		}
 	}
@@ -42,17 +59,45 @@ export default async function GoalsPage() {
 	const isEmptyDatabase = goals.length === 0 && !dbError
 
 	return (
-		<div className="animate-in fade-in duration-500 max-w-6xl mx-auto px-4">
+		<div className="animate-in fade-in duration-500 max-w-6xl mx-auto px-4 py-8">
 			<header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent leading-tight">
-						Savings Goals
-					</h1>
-					<p className="text-slate-400 mt-2 font-medium italic">Track your progress towards your financial objectives.</p>
+					<div className="flex items-center gap-2 mb-1">
+						{isArchivedView && (
+							<Link href="/goals" className="p-1 hover:bg-slate-800 rounded-full transition-colors">
+								<ArrowLeft className="w-5 h-5 text-slate-400" />
+							</Link>
+						)}
+						<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent leading-tight">
+							{isArchivedView ? 'Archived Goals' : 'Savings Goals'}
+						</h1>
+					</div>
+
+					<div className="flex items-center gap-4 mt-2">
+						<p className="text-slate-400 font-medium italic">
+							{isArchivedView ? 'Your completed or paused objectives.' : 'Track your progress towards your financial objectives.'}
+						</p>
+						<span className="text-slate-700">|</span>
+						<Link
+							href={isArchivedView ? '/goals' : '/goals?view=archived'}
+							className="text-sm font-semibold text-amber-500/80 hover:text-amber-400 flex items-center gap-1 transition-colors"
+						>
+							{isArchivedView ? (
+								'Back to Active'
+							) : (
+								<>
+									<Archive size={14} />
+									View Archive
+								</>
+							)}
+						</Link>
+					</div>
 				</div>
-				<div className="shrink-0">
-					<AddGoalModal />
-				</div>
+				{!isArchivedView && (
+					<div className="shrink-0">
+						<AddGoalModal />
+					</div>
+				)}
 			</header>
 
 			{/* Error State */}
@@ -72,12 +117,13 @@ export default async function GoalsPage() {
 					<div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
 						<Target className="text-amber-500" size={40} />
 					</div>
-					<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">No goals yet</h3>
-					<p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium italic">Set your first savings target to get started.</p>
-					<AddGoalModal />
+					<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{isArchivedView ? 'No archived goals' : 'No goals yet'}</h3>
+					<p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium italic">
+						{isArchivedView ? 'Completed goals will appear here.' : 'Set your first savings target to get started.'}
+					</p>
+					{!isArchivedView && <AddGoalModal />}
 				</section>
 			) : (
-				/* Added 'items-start' to prevent adjacent cards from stretching when one expands */
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 					{goals.map((goal) => (
 						<GoalCard key={goal.id} goal={goal} />
