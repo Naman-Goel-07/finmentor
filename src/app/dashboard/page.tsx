@@ -1,5 +1,4 @@
-import { createServerClient } from '@/lib/supabaseClient'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/client'
 import DashboardCharts from '@/components/DashboardCharts'
 import { AlertCircle, ArrowUpRight, IndianRupee, Activity, Star } from 'lucide-react'
 import Link from 'next/link'
@@ -17,12 +16,12 @@ export default async function DashboardPage() {
 	let goalsCount = 0
 
 	if (hasSupabaseUrl) {
-		const cookieStore = await cookies()
-		const token = cookieStore.get('sb-auth-token')?.value || ''
-		const supabase = createServerClient(token)
-		
+		const supabase = createClient()
+
 		try {
-			const { data: { user } } = await supabase.auth.getUser()
+			const {
+				data: { user },
+			} = await supabase.auth.getUser()
 
 			if (user) {
 				const { data, error } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
@@ -43,8 +42,8 @@ export default async function DashboardPage() {
 				if (!countError) goalsCount = count || 0
 			}
 		} catch (err: any) {
-			dbError = "Network connection failed. Check your Supabase URL."
-			console.error("Dashboard Server Fetch Error:", err)
+			dbError = 'Network connection failed. Check your Supabase URL.'
+			console.error('Dashboard Server Fetch Error:', err)
 		}
 	}
 
@@ -96,78 +95,84 @@ export default async function DashboardPage() {
 				<>
 					{/* KPI CARDS: Dark Slate Theme */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-				<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700/50 transition-colors">
-					<div>
-						<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Spent</p>
-						<h3 className="text-3xl font-bold text-white mb-2">₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-						<p className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 py-1 px-2.5 rounded-lg inline-block">
-							{totalSpent > 0 ? "You're tracking it! 👏" : "Your wallet is safe. 🛡️"}
-						</p>
-					</div>
-					<div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-inner">
-						<IndianRupee size={24} />
-					</div>
-				</div>
-
-				<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700/50 transition-colors">
-					<div>
-						<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Transactions</p>
-						<h3 className="text-3xl font-bold text-white mb-2">{totalTransactions}</h3>
-						<p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 py-1 px-2.5 rounded-lg inline-block">
-							{totalTransactions > 3 ? "Watch those coffees ☕!" : "Keep adding records! ➕"}
-						</p>
-					</div>
-					<div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-inner">
-						<Activity size={24} />
-					</div>
-				</div>
-
-				<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex flex-col justify-center items-center backdrop-blur-sm hover:bg-slate-900/80 transition-all group cursor-pointer overflow-hidden relative">
-					<div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-					<Link href="/expenses" className="text-blue-400 group-hover:text-blue-300 font-bold flex items-center gap-2 transition-colors z-10 w-full h-full justify-center">
-						View all records <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-					</Link>
-					<p className="text-xs text-slate-500 font-medium italic absolute bottom-3 z-10 transition-colors group-hover:text-slate-400">See your full history</p>
-				</div>
-			</div>
-
-			<DashboardCharts expenses={expenses} />
-
-			{/* RECENT TRANSACTIONS: Dark List */}
-			<div className="mt-8 bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
-				<div className="p-6 border-b border-slate-800/60 flex justify-between items-center">
-					<h3 className="text-lg font-bold text-white">Recent Transactions</h3>
-					<Link href="/expenses" className="text-blue-400 text-sm font-bold hover:underline">
-						See all
-					</Link>
-				</div>
-
-				<div className="divide-y divide-slate-800/40">
-					{recentExpenses.length > 0 ? (
-						recentExpenses.map((exp, idx) => (
-							<div key={idx} className="p-4 px-8 flex justify-between items-center hover:bg-slate-800/30 transition-colors">
-								<div className="flex flex-col">
-									<span className="font-bold text-slate-100">{exp.category}</span>
-									<span className="text-xs font-medium text-slate-500 mt-0.5 italic">
-										{exp.note || 'No description'} &bull;{' '}
-										{new Date(exp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-									</span>
-								</div>
-								<span className="font-extrabold text-white">₹{exp.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+						<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700/50 transition-colors">
+							<div>
+								<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Spent</p>
+								<h3 className="text-3xl font-bold text-white mb-2">₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+								<p className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 py-1 px-2.5 rounded-lg inline-block">
+									{totalSpent > 0 ? "You're tracking it! 👏" : 'Your wallet is safe. 🛡️'}
+								</p>
 							</div>
-						))
-					) : (
-						<div className="p-16 text-center text-slate-500 flex flex-col items-center">
-							<Activity className="w-12 h-12 text-slate-700 mb-4 opacity-50" />
-							<p className="font-bold text-lg text-slate-300">Start tracking your expenses</p>
-							<p className="font-medium italic text-sm mt-1 mb-6">Record your first coffee or grocery run! ☕</p>
-							<AddExpenseModal />
+							<div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-inner">
+								<IndianRupee size={24} />
+							</div>
 						</div>
-					)}
-				</div>
-			</div>
-			</>
-		)}
+
+						<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700/50 transition-colors">
+							<div>
+								<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Transactions</p>
+								<h3 className="text-3xl font-bold text-white mb-2">{totalTransactions}</h3>
+								<p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 py-1 px-2.5 rounded-lg inline-block">
+									{totalTransactions > 3 ? 'Watch those coffees ☕!' : 'Keep adding records! ➕'}
+								</p>
+							</div>
+							<div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-inner">
+								<Activity size={24} />
+							</div>
+						</div>
+
+						<div className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex flex-col justify-center items-center backdrop-blur-sm hover:bg-slate-900/80 transition-all group cursor-pointer overflow-hidden relative">
+							<div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+							<Link
+								href="/expenses"
+								className="text-blue-400 group-hover:text-blue-300 font-bold flex items-center gap-2 transition-colors z-10 w-full h-full justify-center"
+							>
+								View all records{' '}
+								<ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+							</Link>
+							<p className="text-xs text-slate-500 font-medium italic absolute bottom-3 z-10 transition-colors group-hover:text-slate-400">
+								See your full history
+							</p>
+						</div>
+					</div>
+
+					<DashboardCharts expenses={expenses} />
+
+					{/* RECENT TRANSACTIONS: Dark List */}
+					<div className="mt-8 bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
+						<div className="p-6 border-b border-slate-800/60 flex justify-between items-center">
+							<h3 className="text-lg font-bold text-white">Recent Transactions</h3>
+							<Link href="/expenses" className="text-blue-400 text-sm font-bold hover:underline">
+								See all
+							</Link>
+						</div>
+
+						<div className="divide-y divide-slate-800/40">
+							{recentExpenses.length > 0 ? (
+								recentExpenses.map((exp, idx) => (
+									<div key={idx} className="p-4 px-8 flex justify-between items-center hover:bg-slate-800/30 transition-colors">
+										<div className="flex flex-col">
+											<span className="font-bold text-slate-100">{exp.category}</span>
+											<span className="text-xs font-medium text-slate-500 mt-0.5 italic">
+												{exp.note || 'No description'} &bull;{' '}
+												{new Date(exp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+											</span>
+										</div>
+										<span className="font-extrabold text-white">₹{exp.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+									</div>
+								))
+							) : (
+								<div className="p-16 text-center text-slate-500 flex flex-col items-center">
+									<Activity className="w-12 h-12 text-slate-700 mb-4 opacity-50" />
+									<p className="font-bold text-lg text-slate-300">Start tracking your expenses</p>
+									<p className="font-medium italic text-sm mt-1 mb-6">Record your first coffee or grocery run! ☕</p>
+									<AddExpenseModal />
+								</div>
+							)}
+						</div>
+					</div>
+				</>
+			)}
 		</div>
 	)
 }

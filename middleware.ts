@@ -40,7 +40,8 @@ export async function middleware(request: NextRequest) {
 		data: { user },
 	} = await supabase.auth.getUser()
 
-	const isPublicRoute = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup'
+	const isPublicRoute =
+		request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname.startsWith('/auth/callback')
 
 	// 3. Redirection Logic
 	if (!user && !isPublicRoute) {

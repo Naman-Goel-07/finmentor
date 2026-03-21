@@ -1,5 +1,4 @@
-import { createServerClient } from '@/lib/supabaseClient'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/client'
 import AddGoalModal from '@/components/AddGoalModal'
 import GoalCard from '@/components/GoalCard'
 import { AlertCircle, Target, ArrowLeft, Archive } from 'lucide-react'
@@ -18,16 +17,20 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 	let dbError = null
 
 	if (hasSupabaseUrl) {
-		const cookieStore = await cookies()
-		const token = cookieStore.get('sb-auth-token')?.value || ''
-		const supabase = createServerClient(token)
-		
+		const supabase = createClient()
+
 		try {
-			const { data: { user } } = await supabase.auth.getUser()
+			const {
+				data: { user },
+			} = await supabase.auth.getUser()
 
 			if (user) {
 				// 3. Fetch all goals
-				const { data: goalsData, error: goalsError } = await supabase.from('goals').select('*').eq('user_id', user.id).order('deadline', { ascending: true })
+				const { data: goalsData, error: goalsError } = await supabase
+					.from('goals')
+					.select('*')
+					.eq('user_id', user.id)
+					.order('deadline', { ascending: true })
 
 				if (goalsError) {
 					dbError = goalsError.message
@@ -64,8 +67,8 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 				}
 			}
 		} catch (err: any) {
-			dbError = "Network connection failed. Check your Supabase URL."
-			console.error("Goals Server Fetch Error:", err)
+			dbError = 'Network connection failed. Check your Supabase URL.'
+			console.error('Goals Server Fetch Error:', err)
 		}
 	}
 
@@ -132,11 +135,11 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 						<Target className="text-amber-400 drop-shadow-lg" size={48} />
 					</div>
 					<h3 className="text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight z-10 relative">
-						{isArchivedView ? 'Clean slate! 🗃️' : 'You haven\'t created any goals yet'}
+						{isArchivedView ? 'Clean slate! 🗃️' : "You haven't created any goals yet"}
 					</h3>
 					<p className="text-slate-400 max-w-md mx-auto mb-10 font-medium text-[15px] leading-relaxed z-10 relative">
-						{isArchivedView 
-							? 'You have no archived goals yet. Focus on crushing your active objectives and watch your financial profile grow!' 
+						{isArchivedView
+							? 'You have no archived goals yet. Focus on crushing your active objectives and watch your financial profile grow!'
 							: 'Break down your financial dreams into achievable milestones. Set your first savings target below.'}
 					</p>
 					{!isArchivedView && (

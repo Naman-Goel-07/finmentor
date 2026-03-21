@@ -5,7 +5,7 @@ import Sidebar from './Sidebar'
 import { Menu, User, LogOut, ChevronDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
@@ -14,6 +14,8 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	const [profileOpen, setProfileOpen] = useState(false)
 	const { user, loading, setUser } = useAuth()
 	const pathname = usePathname()
+
+	const supabase = createClient()
 
 	useEffect(() => {
 		if (!user) return

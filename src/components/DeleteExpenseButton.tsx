@@ -1,13 +1,15 @@
 'use client'
 
 import { Trash2, Loader2 } from 'lucide-react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function DeleteExpenseButton({ id }: { id: string }) {
 	const router = useRouter()
 	const [isDeleting, setIsDeleting] = useState(false)
+
+	const supabase = createClient()
 
 	const handleDelete = async () => {
 		// Confirmation dialog to prevent accidental clicks during demo

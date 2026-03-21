@@ -1,7 +1,7 @@
 'use client'
 
 import { X, Loader2 } from 'lucide-react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -13,6 +13,8 @@ interface DeleteProps {
 export default function DeleteContributionButton({ id, onSuccess }: DeleteProps) {
 	const router = useRouter()
 	const [isDeleting, setIsDeleting] = useState(false)
+
+	const supabase = createClient()
 
 	const handleDelete = async (e: React.MouseEvent) => {
 		// Prevents the GoalCard from toggling/expanding

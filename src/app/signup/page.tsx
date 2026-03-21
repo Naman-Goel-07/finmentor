@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
-import supabase from '@/lib/supabaseClient' // Ensure this is the SSR version
+import { createClient } from '@/lib/supabase/client' // Ensure this is the SSR version
 
 export default function SignupPage() {
 	const router = useRouter()
+	const supabase = createClient()
 	const [fullName, setFullName] = useState('')
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')

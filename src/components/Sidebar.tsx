@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, PanelLeftClose, PanelLeftOpen, LogOut, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 
 const navItems = [
@@ -24,9 +24,11 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 	const pathname = usePathname()
 	const router = useRouter()
-	const { user } = useAuth() // Get user from our context
+	const { user } = useAuth()
 	const [isCollapsed, setIsCollapsed] = useState(false)
 	const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+	const supabase = createClient()
 
 	const getInitials = (name: string) => {
 		if (!name) return '??'
@@ -116,7 +118,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 					)
 				})}
 
-				{/* LOGOUT BUTTON IN NAV LIST */}
+				{/* LOGOUT BUTTON */}
 				<button
 					onClick={handleLogout}
 					disabled={isLoggingOut}

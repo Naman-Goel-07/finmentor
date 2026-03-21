@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client' // Your new split client
 import { User, Mail, Shield, Bell, Save, Loader2, Info } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -9,6 +9,9 @@ export default function ProfilePage() {
 	const { user, setUser } = useAuth()
 	const [saving, setSaving] = useState(false)
 	const [message, setMessage] = useState({ type: '', text: '' })
+
+	// Initialize the Supabase instance
+	const supabase = createClient()
 
 	const [formData, setFormData] = useState({
 		full_name: '',
@@ -28,25 +31,39 @@ export default function ProfilePage() {
 	const handleUpdate = async (e: React.FormEvent) => {
 		e.preventDefault()
 		if (!user) return
+
 		setSaving(true)
 		setMessage({ type: '', text: '' })
 
-		// Update the public profile
-		const { error } = await supabase.from('profiles').upsert({
-			id: user.id,
-			full_name: formData.full_name,
-			email: formData.email,
-		})
+		try {
+			// Update the public profile
+			const { error } = await supabase.from('profiles').upsert({
+				id: user.id,
+				full_name: formData.full_name,
+				email: formData.email,
+				updated_at: new Date().toISOString(),
+			})
 
-		if (error) {
-			console.error('Supabase Error:', error.message)
-			setMessage({ type: 'error', text: 'Failed to update profile.' })
-		} else {
+			if (error) throw error
+
 			setMessage({ type: 'success', text: 'Changes saved!' })
-			// Sync the global AuthContext state
-			setUser((prev) => (prev ? { ...prev, full_name: formData.full_name, email: formData.email } : prev))
+
+			// Sync the global AuthContext state so the Sidebar updates instantly
+			setUser((prev) =>
+				prev
+					? {
+							...prev,
+							full_name: formData.full_name,
+							email: formData.email,
+						}
+					: prev,
+			)
+		} catch (error: any) {
+			console.error('Supabase Error:', error.message)
+			setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
+		} finally {
+			setSaving(false)
 		}
-		setSaving(false)
 	}
 
 	if (!user)

@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { LogOut, Loader2 } from 'lucide-react'
 
 export default function LogoutButton() {
 	const router = useRouter()
 	const [loading, setLoading] = useState(false)
+	const supabase = createClient()
 
 	const handleLogout = async () => {
 		setLoading(true)

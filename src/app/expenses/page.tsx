@@ -1,6 +1,5 @@
 import { AlertCircle, Plus } from 'lucide-react'
-import { createServerClient } from '@/lib/supabaseClient'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/client'
 import AddExpenseModal from '@/components/AddExpenseModal'
 import DeleteExpenseButton from '@/components/DeleteExpenseButton'
 
@@ -17,9 +16,7 @@ export default async function ExpensesPage() {
 
 	// 2. Fetch Data
 	if (!isMissingSupabase) {
-		const cookieStore = await cookies()
-		const token = cookieStore.get('sb-auth-token')?.value || ''
-		const supabase = createServerClient(token)
+		const supabase = createClient()
 		
 		try {
 			const { data: { user } } = await supabase.auth.getUser()
