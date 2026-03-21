@@ -62,11 +62,20 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	const firstName = user?.full_name?.trim().split(' ')[0] || 'User'
 
 	const handleLogout = async () => {
+		// 1. Immediately close UI elements
 		setProfileOpen(false)
+		setSidebarOpen(false)
+
 		try {
-			await supabase.auth.signOut()
-			await fetch('/api/auth/logout', { method: 'POST' })
+			// 2. Trigger the cleanup (Don't await the Supabase call if it's hanging)
+			supabase.auth.signOut()
+
+			// 3. Call your internal API to clear the cookies
+			// We use a short timeout so we don't wait forever if the server is slow
+			await Promise.race([fetch('/api/auth/logout', { method: 'POST' }), new Promise((resolve) => setTimeout(resolve, 1000))])
 		} finally {
+			// 4. THE NUCLEAR OPTION: Hard reload to /login
+			// This clears the AuthContext state completely and bypasses the loader.
 			window.location.href = '/login'
 		}
 	}

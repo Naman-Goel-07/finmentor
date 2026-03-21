@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LogOut, Loader2 } from 'lucide-react'
+import clsx from 'clsx'
 
-export default function LogoutButton() {
-	const router = useRouter()
+interface LogoutButtonProps {
+	isCollapsed?: boolean
+}
+
+export default function LogoutButton({ isCollapsed }: LogoutButtonProps) {
 	const [loading, setLoading] = useState(false)
 	const supabase = createClient()
 
@@ -16,20 +19,14 @@ export default function LogoutButton() {
 			// 1. Clear Supabase Client State
 			await supabase.auth.signOut()
 
-			// 2. Clear the Server-Side Cookie
-			// (Ensure this matches your filename in api/auth/...)
-			const response = await fetch('/api/auth/logout', {
-				method: 'POST',
-			})
-
-			if (response.ok) {
-				// 3. Force redirect and refresh to clear middleware cache
-				router.push('/login')
-				router.refresh()
-			}
+			// 2. Clear the Server-Side Cookie with a timeout safety
+			await Promise.race([fetch('/api/auth/logout', { method: 'POST' }), new Promise((resolve) => setTimeout(resolve, 1000))])
 		} catch (error) {
 			console.error('Logout failed:', error)
-			setLoading(false)
+		} finally {
+			// 3. THE RESET: Hard reload to /login
+			// Bypasses React state entirely to avoid hydration/loading locks
+			window.location.href = '/login'
 		}
 	}
 
@@ -37,10 +34,29 @@ export default function LogoutButton() {
 		<button
 			onClick={handleLogout}
 			disabled={loading}
-			className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-all w-full group disabled:opacity-50"
+			className={clsx(
+				'flex items-center gap-3 px-3 py-3 text-sm font-semibold transition-all w-full group disabled:opacity-50 cursor-pointer rounded-xl',
+				'text-red-400/80 hover:bg-red-500/10 hover:text-red-400 mt-4',
+				isCollapsed ? 'justify-center' : 'px-3',
+			)}
 		>
-			{loading ? <Loader2 size={18} className="animate-spin" /> : <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />}
-			<span>{loading ? 'Signing out...' : 'Logout'}</span>
+			<div className="relative">
+				{loading ? (
+					<Loader2 size={20} className="animate-spin" />
+				) : (
+					<LogOut size={20} className="group-hover:-translate-x-1 transition-transform shrink-0" />
+				)}
+			</div>
+
+			{!isCollapsed && <span className="tracking-wide whitespace-nowrap">{loading ? 'Signing out...' : 'Logout'}</span>}
+
+			{/* Tooltip for Collapsed State */}
+			{isCollapsed && (
+				<div className="hidden md:block absolute left-20 bg-red-900 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform -translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[100] border border-red-700 shadow-2xl">
+					Logout
+					<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-red-900 border-l border-b border-red-700 rotate-45" />
+				</div>
+			)}
 		</button>
 	)
 }

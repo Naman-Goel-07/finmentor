@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, PanelLeftClose, PanelLeftOpen, LogOut, Loader2 } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import clsx from 'clsx'
-import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import LogoutButton from '@/components/LogoutButton' // ✅ Import your new single-source-of-truth button
 
 const navItems = [
 	{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -23,33 +23,14 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 	const pathname = usePathname()
-	const router = useRouter()
 	const { user } = useAuth()
 	const [isCollapsed, setIsCollapsed] = useState(false)
-	const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-	const supabase = createClient()
 
 	const getInitials = (name: string) => {
 		if (!name) return '??'
 		const parts = name.split(' ')
 		if (parts.length === 1) return name.slice(0, 2).toUpperCase()
 		return (parts[0][0] + (parts[parts.length - 1]?.[0] || '')).toUpperCase()
-	}
-
-	const handleLogout = async () => {
-		setIsLoggingOut(true)
-		try {
-			await supabase.auth.signOut()
-			const response = await fetch('/api/auth/logout', { method: 'POST' })
-			if (response.ok) {
-				router.push('/login')
-				router.refresh()
-			}
-		} catch (error) {
-			console.error('Logout failed:', error)
-			setIsLoggingOut(false)
-		}
 	}
 
 	return (
@@ -118,25 +99,8 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 					)
 				})}
 
-				{/* LOGOUT BUTTON */}
-				<button
-					onClick={handleLogout}
-					disabled={isLoggingOut}
-					className={clsx(
-						'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative text-red-400/80 hover:bg-red-500/10 hover:text-red-400 mt-4',
-						isCollapsed && 'justify-center',
-					)}
-				>
-					{isLoggingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5 shrink-0" />}
-					{!isCollapsed && <span className="font-semibold text-sm tracking-wide">Logout</span>}
-
-					{isCollapsed && (
-						<div className="hidden md:block absolute left-20 bg-red-900 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform -translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[100] border border-red-700 shadow-2xl">
-							Logout
-							<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-red-900 border-l border-b border-red-700 rotate-45" />
-						</div>
-					)}
-				</button>
+				{/* ✅ LOGOUT BUTTON INJECTED HERE */}
+				<LogoutButton isCollapsed={isCollapsed} />
 			</nav>
 
 			{/* MINI PROFILE FOOTER */}
