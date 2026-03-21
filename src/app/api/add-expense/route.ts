@@ -1,10 +1,8 @@
-import { createServerClient } from "@/lib/supabaseClient"
-import { cookies } from "next/headers"
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(cookieStore.get('sb-auth-token')?.value || '')
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
