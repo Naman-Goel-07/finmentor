@@ -96,15 +96,15 @@ export default function SignupPage() {
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
 						<div className="relative">
-							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r border-slate-700/50 pr-2">
-								<User className="h-5 w-5 text-slate-500 ml-4" />
+							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+								<User className="h-5 w-5 text-slate-500" />
 							</div>
 							<input
 								type="text"
 								required
 								value={fullName}
 								onChange={(e) => setFullName(e.target.value)}
-								className="block w-full pl-14 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
+								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
 								placeholder="Username"
 							/>
 						</div>
@@ -113,8 +113,8 @@ export default function SignupPage() {
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
 						<div className="relative">
-							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r border-slate-700/50 pr-2">
-								<Mail className="h-5 w-5 text-slate-500 ml-4" />
+							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+								<Mail className="h-5 w-5 text-slate-500" />
 							</div>
 							<input
 								type="email"
@@ -130,8 +130,8 @@ export default function SignupPage() {
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Password</label>
 						<div className="relative">
-							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r border-slate-700/50 pr-2">
-								<Lock className="h-5 w-5 text-slate-500 ml-4" />
+							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+								<Lock className="h-5 w-5 text-slate-500" />
 							</div>
 							<input
 								type="password"
