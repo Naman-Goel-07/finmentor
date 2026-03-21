@@ -28,6 +28,7 @@ export default function SignupPage() {
 					data: {
 						full_name: fullName,
 					},
+					emailRedirectTo: `${window.location.origin}/auth/callback`,
 				},
 			})
 
@@ -47,11 +48,14 @@ export default function SignupPage() {
 				if (!res.ok) {
 					throw new Error('Failed to set secure session cookie.')
 				}
+				
+				// 3. Redirect to Dashboard if auto-login is active
+				router.push('/dashboard')
+				router.refresh()
+			} else {
+				// Require email verification flow
+				router.push('/login?message=verify-email')
 			}
-
-			// 3. Redirect to Dashboard
-			router.push('/dashboard')
-			router.refresh()
 		} catch (err: any) {
 			setError(err.message || 'Failed to sign up')
 		} finally {

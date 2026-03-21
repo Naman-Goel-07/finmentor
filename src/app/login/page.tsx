@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
 
 export default function LoginPage() {
@@ -25,7 +25,12 @@ export default function LoginPage() {
 				password,
 			})
 
-			if (authError) throw authError
+			if (authError) {
+				if (authError.message.includes('Email not confirmed')) {
+					throw new Error("Please verify your email before logging in.")
+				}
+				throw authError
+			}
 
 			// 2. Set the secure HTTP-only cookie for Next.js Middleware/SSR
 			if (data.session?.access_token) {
@@ -66,6 +71,10 @@ export default function LoginPage() {
 					</h1>
 					<p className="text-slate-400 mt-2 font-medium">Log in to manage your finances.</p>
 				</div>
+
+				<Suspense fallback={null}>
+					<LoginMessages />
+				</Suspense>
 
 				{error && (
 					<div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3">
@@ -128,4 +137,29 @@ export default function LoginPage() {
 			</div>
 		</div>
 	)
+}
+
+function LoginMessages() {
+	const searchParams = useSearchParams()
+	const msg = searchParams.get('message')
+
+	if (msg === 'verify-email') {
+		return (
+			<div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+				<AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+				<p className="text-sm font-medium text-amber-200">✅ Confirmation email sent. Please check your inbox and verify your email before logging in.</p>
+			</div>
+		)
+	}
+
+	if (msg === 'verified') {
+		return (
+			<div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
+				<CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+				<p className="text-sm font-medium text-emerald-200">🎉 Email verified successfully! You can now log in.</p>
+			</div>
+		)
+	}
+
+	return null
 }
