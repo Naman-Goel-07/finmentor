@@ -10,47 +10,28 @@ export async function POST(req: Request) {
 		if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
 		const body = await req.json()
-		const { goal_name, target_amount, saved_amount, deadline, category } = body
+		const { goal_id, amount, note } = body
 
-		// 1. Create the Goal Record
-		// We set saved_amount to 0 here because the actual money
-		// will be recorded in the contributions table below.
-		const { data: newGoal, error: goalError } = await supabase
-			.from('goals')
-			.insert([
-				{
-					user_id: user.id,
-					goal_name,
-					target_amount: Number(target_amount),
-					deadline,
-					is_archived: false,
-				},
-			])
-			.select()
-			.single()
-
-		if (goalError) return Response.json({ error: goalError.message }, { status: 500 })
-
-		// 2. Record the Initial Deposit as the first Contribution
-		const initialDeposit = Number(saved_amount || 0)
-
-		if (initialDeposit > 0) {
-			const { error: contribError } = await supabase.from('goal_contributions').insert([
-				{
-					user_id: user.id,
-					goal_id: newGoal.id,
-					amount: initialDeposit,
-					note: 'Initial Deposit',
-				},
-			])
-
-			if (contribError) {
-				// We don't fail the whole request since the goal was created,
-				// but in a production app, you might want to handle this.
-			}
+		if (!goal_id || !amount) {
+			return Response.json({ error: 'Goal ID and amount are required.' }, { status: 400 })
 		}
 
-		return Response.json({ success: true, goal: newGoal })
+		// CRITICAL: We ONLY insert into 'goal_contributions'
+		// We do NOT call .from('goals').insert(...) here.
+		const { error: insertError } = await supabase.from('goal_contributions').insert([
+			{
+				user_id: user.id,
+				goal_id: goal_id,
+				amount: Number(amount),
+				note: note || 'Manual Contribution',
+			},
+		])
+
+		if (insertError) {
+			return Response.json({ error: insertError.message }, { status: 500 })
+		}
+
+		return Response.json({ success: true })
 	} catch (err: unknown) {
 		return Response.json({ error: 'An unexpected error occurred.' }, { status: 500 })
 	}
