@@ -9,16 +9,24 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
+// ✅ INITIALIZE OUTSIDE: Ensures stability across re-renders.
 const supabase = createClient()
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [profileOpen, setProfileOpen] = useState(false)
+	const [isMounted, setIsMounted] = useState(false) // ✅ Hydration Guard
 	const { user, loading, setUser } = useAuth()
 	const pathname = usePathname()
 
+	// 1. Set mounted state to true once we hit the browser
+	useEffect(() => {
+		setIsMounted(true)
+	}, [])
+
 	const isAuthPage = pathname === '/login' || pathname === '/signup'
 
+	// 2. Real-time Profile Sync
 	useEffect(() => {
 		if (!user || isAuthPage) return
 
@@ -45,21 +53,30 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		}
 	}, [user, setUser, isAuthPage])
 
+	// 3. Handle Auth Pages immediately
 	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
 
+	// 4. THE HYDRATION SHIELD
+	// If we haven't mounted in the browser yet, return the children (the server-rendered HTML).
+	// This prevents the "Warming up" screen from wiping out the dashboard
+	// before the client auth has even started.
+	if (!isMounted) {
+		return <div className="bg-[#020617] min-h-screen">{children}</div>
+	}
+
+	// 5. THE PRODUCTION LOADING CHECK
+	// Only block if we are DEFINITELY mounted, still LOADING, and have NO user data.
 	if (loading && !user) {
 		return (
 			<div className="flex bg-[#020617] h-screen w-full items-center justify-center flex-col gap-4 text-slate-300">
 				<Loader2 className="animate-spin text-emerald-500" size={48} />
-				<p className="font-semibold tracking-wide animate-pulse text-sm">Warming up your dashboard...</p>
+				<p className="font-semibold tracking-wide animate-pulse">Warming up your dashboard...</p>
 			</div>
 		)
 	}
 
 	const handleLogout = async () => {
 		setProfileOpen(false)
-		// We trigger the signOut and API call, but we move the user immediately
-		// to avoid "UI lag" while waiting for the network.
 		try {
 			await supabase.auth.signOut()
 			await fetch('/api/auth/logout', { method: 'POST' })
@@ -68,7 +85,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		}
 	}
 
-	// Safely get first name
 	const firstName = user?.full_name?.trim().split(' ')[0] || 'User'
 
 	return (
@@ -131,12 +147,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 					</div>
 				</header>
 
-				<main
-					className={clsx(
-						'flex-1 overflow-y-auto bg-[#020617] relative transition-opacity duration-500',
-						loading && !user ? 'opacity-0' : 'opacity-100',
-					)}
-				>
+				<main className="flex-1 overflow-y-auto bg-[#020617] relative">
 					<div className="max-w-6xl mx-auto w-full p-4 md:p-8 min-h-full overflow-x-hidden">{children}</div>
 				</main>
 
