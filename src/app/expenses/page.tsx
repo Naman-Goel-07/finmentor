@@ -65,7 +65,7 @@ export default async function ExpensesPage() {
 			)}
 
 			{/* TABLE SECTION */}
-			<section className="bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
+			<section className="bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 backdrop-blur-sm">
 				{isEmptyDatabase ? (
 					<div className="flex flex-col items-center justify-center p-20 text-center relative group">
 						<div className="absolute inset-0 rounded-3xl bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -73,9 +73,7 @@ export default async function ExpensesPage() {
 							<Plus size={40} className="text-emerald-400" />
 						</div>
 						<h3 className="text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight z-10 relative">No expenses yet</h3>
-						<p className="text-slate-400 max-w-md mb-10 font-medium text-[15px] leading-relaxed z-10 relative">
-							Start by adding your first expense below.
-						</p>
+						<p className="text-slate-400 max-w-md mb-10 font-medium text-[15px] leading-relaxed z-10 relative">Start by adding your first expense below.</p>
 						<div className="z-10 relative shadow-emerald-500/10 shadow-2xl rounded-xl">
 							<AddExpenseModal />
 						</div>
