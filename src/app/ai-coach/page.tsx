@@ -75,7 +75,7 @@ export default function AICoachPage() {
 						</div>
 						<h2 className="text-3xl font-bold text-gray-800 mb-4">Stop Guessing, Start Growing</h2>
 						<p className="text-gray-500 max-w-md mx-auto mb-8 text-lg">
-							HarTime Error's Nudge Engine will scan your transactions to find hidden savings and 10x your future wealth.
+							FinMentor AI will scan your transactions to find hidden savings and 10x your future wealth.
 						</p>
 
 						<button
