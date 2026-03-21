@@ -161,9 +161,6 @@ export default function LoginPage() {
 }
 
 function LoginMessages() {
-	// ... (Keep existing LoginMessages code)
-}
-function LoginMessages() {
 	const searchParams = useSearchParams()
 	const msg = searchParams.get('message')
 
