@@ -21,8 +21,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 	const [refreshTrigger, setRefreshTrigger] = useState(0)
 
 	const savingsHistory = goal.goal_savings || []
-	const contributionsSum = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
-	const dynamicTotalSaved = (Number(goal.saved_amount) || 0) + contributionsSum
+	const dynamicTotalSaved = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
 
 	const percent = goal.target_amount > 0 ? Math.min(Math.round((dynamicTotalSaved / goal.target_amount) * 100), 100) : 0
 	const remaining = Math.max(goal.target_amount - dynamicTotalSaved, 0)
