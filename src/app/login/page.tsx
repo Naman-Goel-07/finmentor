@@ -69,52 +69,32 @@ export default function LoginPage() {
 				)}
 
 				<form onSubmit={handleLogin} className="space-y-5">
+					{/* Email Section */}
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
-						<div className="relative">
-							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-								<Mail className="h-5 w-5 text-slate-500" />
-							</div>
-							<input
-								type="email"
-								required
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
-								placeholder="you@example.com"
-							/>
-						</div>
+						{/* ... email input ... */}
 					</div>
 
+					{/* Password Section */}
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Password</label>
-    					<div className="relative">
-        					<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            					<Lock className="h-5 w-5 text-slate-500" />
-       						</div>
-        
-        				<input
-							type={showPassword ? "text" : "password"}
-							required
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							{/* Added 'pr-12' so text doesn't hide under the eye icon */}
-							className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
-							placeholder="••••••••"
-						/>
+						<div className="relative">
+							{/* ... lock icon ... */}
+							<input
+								type={showPassword ? "text" : "password"}
+								{/* ... other props ... */}
+								className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+							/>
+							<button
+								type="button"
+								onClick={() => setShowPassword(!showPassword)}
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500"
+							>
+								{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+							</button>
+						</div>
 
-						<button
-							type="button"
-							onClick={() => setShowPassword(!showPassword)}
-							className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
-							tabIndex={-1} // Prevents tabbing to the icon for better keyboard UX
-						>
-							{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-						</button>
-					</div>
-				</div>
-
-						{/* Forgot Password Link */}
+						{/* Pair the Forgot Password link tightly with the password field */}
 						<div className="flex justify-end mt-2">
 							<button
 								type="button"
@@ -124,12 +104,12 @@ export default function LoginPage() {
 								Forgot Password?
 							</button>
 						</div>
-					</div>
+					</div> {/* This div closes the entire Password + Forgot Link group */}
 
 					<button
 						type="submit"
 						disabled={loading}
-						className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.98] text-white rounded-xl font-bold transition-all mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+						className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-500 ... mt-4"
 					>
 						{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
 						{!loading && <ArrowRight className="w-5 h-5" />}

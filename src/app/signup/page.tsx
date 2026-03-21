@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client' // Ensure this is the SSR version
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Eye, EyeOff, User } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function SignupPage() {
 	const router = useRouter()
@@ -23,8 +23,6 @@ export default function SignupPage() {
 		setError(null)
 
 		try {
-			// 1. Sign up with Supabase
-			// The SSR client handles the session cookies automatically if auto-login is enabled
 			const { data, error: authError } = await supabase.auth.signUp({
 				email,
 				password,
@@ -38,13 +36,10 @@ export default function SignupPage() {
 
 			if (authError) throw authError
 
-			// 2. Determine next step
 			if (data.session) {
-				// If email confirmation is OFF in Supabase settings
 				router.push('/dashboard')
 				router.refresh()
 			} else {
-				// If email confirmation is ON (Standard)
 				setIsEmailSent(true)
 			}
 		} catch (err: any) {
@@ -57,7 +52,7 @@ export default function SignupPage() {
 	if (isEmailSent) {
 		return (
 			<div className="min-h-screen fixed inset-0 z-50 bg-[#020617] flex items-center justify-center p-4">
-				<div className="w-full max-w-md bg-slate-900/50 p-8 rounded-3xl shadow-2xl border border-slate-800/60 backdrop-blur-xl text-center">
+				<div className="w-full max-w-md bg-slate-900/50 p-8 rounded-3xl shadow-2xl border border-slate-800/60 backdrop-blur-xl text-center animate-in fade-in zoom-in-95 duration-500">
 					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 mb-6 shadow-lg shadow-emerald-500/20">
 						<Mail className="text-white w-8 h-8" />
 					</div>
@@ -65,7 +60,7 @@ export default function SignupPage() {
 					<p className="text-slate-400 font-medium mb-8">
 						We sent a link to <span className="text-emerald-400 font-bold">{email}</span>. Please verify your account to continue.
 					</p>
-					<Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-bold">
+					<Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors">
 						Back to Login
 					</Link>
 				</div>
@@ -105,7 +100,7 @@ export default function SignupPage() {
 								required
 								value={fullName}
 								onChange={(e) => setFullName(e.target.value)}
-								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
 								placeholder="Username"
 							/>
 						</div>
@@ -122,7 +117,7 @@ export default function SignupPage() {
 								required
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
-								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
 								placeholder="you@example.com"
 							/>
 						</div>
@@ -141,7 +136,7 @@ export default function SignupPage() {
 								minLength={6}
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
-								className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+								className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
 								placeholder="••••••••"
 							/>
 
