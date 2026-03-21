@@ -1,29 +1,68 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-	const token = request.cookies.get('sb-auth-token')?.value
+export async function middleware(request: NextRequest) {
+	let response = NextResponse.next({
+		request: {
+			headers: request.headers,
+		},
+	})
+
+	// 1. Initialize the Supabase client specifically for Middleware
+	const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+		cookies: {
+			get(name: string) {
+				return request.cookies.get(name)?.value
+			},
+			set(name: string, value: string, options: CookieOptions) {
+				request.cookies.set({ name, value, ...options })
+				response = NextResponse.next({
+					request: {
+						headers: request.headers,
+					},
+				})
+				response.cookies.set({ name, value, ...options })
+			},
+			remove(name: string, options: CookieOptions) {
+				request.cookies.set({ name, value: '', ...options })
+				response = NextResponse.next({
+					request: {
+						headers: request.headers,
+					},
+				})
+				response.cookies.set({ name, value: '', ...options })
+			},
+		},
+	})
+
+	// 2. Get the session (this also refreshes it if it's expired)
+	const {
+		data: { user },
+	} = await supabase.auth.getUser()
 
 	const isPublicRoute = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup'
 
-	// If no token and not a public route, redirect to login
-	if (!token && !isPublicRoute) {
+	// 3. Redirection Logic
+	if (!user && !isPublicRoute) {
 		return NextResponse.redirect(new URL('/login', request.url))
 	}
 
-	// If logged in and trying to access login/signup, redirect to dashboard
-	if (token && isPublicRoute) {
+	if (user && isPublicRoute) {
 		return NextResponse.redirect(new URL('/dashboard', request.url))
 	}
 
-	return NextResponse.next()
+	return response
 }
 
 export const config = {
 	matcher: [
 		/*
-		 * Protect all routes inside the app except next.js internals and public static files
+		 * Match all request paths except for:
+		 * - _next/static (static files)
+		 * - _next/image (image optimization files)
+		 * - favicon.ico (favicon file)
+		 * - Public images (svg, png, jpg)
 		 */
-		'/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.svg$|.*\\.png$).*)',
+		'/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
 	],
 }

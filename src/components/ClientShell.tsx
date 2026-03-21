@@ -114,7 +114,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 											}}
 											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
 										>
-											<LogOut size={16} /> Sign Out
+											<LogOut size={16} /> Log Out
 										</button>
 									</div>
 								</>

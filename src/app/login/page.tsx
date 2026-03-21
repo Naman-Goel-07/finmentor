@@ -4,10 +4,11 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/utils/supabase/client' // Updated import
 
 export default function LoginPage() {
 	const router = useRouter()
+	const supabase = createClient() // Initialize the SSR-ready browser client
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [loading, setLoading] = useState(false)
@@ -19,36 +20,22 @@ export default function LoginPage() {
 		setError(null)
 
 		try {
-			// 1. Authenticate with Supabase Client
-			const { data, error: authError } = await supabase.auth.signInWithPassword({
+			// 1. Authenticate with Supabase
+			// The SSR client automatically handles setting the cookies!
+			const { error: authError } = await supabase.auth.signInWithPassword({
 				email,
 				password,
 			})
 
 			if (authError) {
 				if (authError.message.includes('Email not confirmed')) {
-					throw new Error("Please verify your email before logging in.")
+					throw new Error('Please verify your email before logging in.')
 				}
 				throw authError
 			}
 
-			// 2. Set the secure HTTP-only cookie for Next.js Middleware/SSR
-			if (data.session?.access_token) {
-				const res = await fetch('/api/auth/set-session', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						access_token: data.session.access_token,
-						refresh_token: data.session.refresh_token,
-					}),
-				})
-
-				if (!res.ok) {
-					throw new Error('Failed to set secure session cookie.')
-				}
-			}
-
-			// 3. Redirect to Dashboard
+			// 2. Redirect to Dashboard
+			// router.refresh() ensures the middleware picks up the new cookie immediately
 			router.push('/dashboard')
 			router.refresh()
 		} catch (err: any) {
@@ -61,7 +48,6 @@ export default function LoginPage() {
 	return (
 		<div className="min-h-screen fixed inset-0 z-50 bg-[#020617] flex items-center justify-center p-4 selection:bg-blue-500/30">
 			<div className="w-full max-w-md bg-slate-900/50 p-8 rounded-3xl shadow-2xl border border-slate-800/60 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500">
-				
 				<div className="text-center mb-8">
 					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 mb-6 shadow-lg shadow-blue-500/20">
 						<Lock className="text-white w-8 h-8" />
@@ -72,7 +58,7 @@ export default function LoginPage() {
 					<p className="text-slate-400 mt-2 font-medium">Log in to manage your finances.</p>
 				</div>
 
-				<Suspense fallback={null}>
+				<Suspense fallback={<div className="h-20" />}>
 					<LoginMessages />
 				</Suspense>
 
@@ -147,7 +133,7 @@ function LoginMessages() {
 		return (
 			<div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
 				<AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-				<p className="text-sm font-medium text-amber-200">✅ Confirmation email sent. Please check your inbox and verify your email before logging in.</p>
+				<p className="text-sm font-medium text-amber-200">✅ Confirmation email sent. Check your inbox to verify before logging in.</p>
 			</div>
 		)
 	}
@@ -156,7 +142,7 @@ function LoginMessages() {
 		return (
 			<div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
 				<CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-				<p className="text-sm font-medium text-emerald-200">🎉 Email verified successfully! You can now log in.</p>
+				<p className="text-sm font-medium text-emerald-200">🎉 Email verified! You can now log in.</p>
 			</div>
 		)
 	}

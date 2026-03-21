@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import supabase from '@/lib/supabaseClient'
-import { User, Mail, Shield, Bell, Save, Loader2 } from 'lucide-react'
+import { User, Mail, Shield, Bell, Save, Loader2, Info } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 export default function ProfilePage() {
@@ -11,9 +11,19 @@ export default function ProfilePage() {
 	const [message, setMessage] = useState({ type: '', text: '' })
 
 	const [formData, setFormData] = useState({
-		full_name: user?.full_name || '',
-		email: user?.email || '',
+		full_name: '',
+		email: '',
 	})
+
+	// Sync form data once user is loaded from AuthContext
+	useEffect(() => {
+		if (user) {
+			setFormData({
+				full_name: user.full_name || '',
+				email: user.email || '',
+			})
+		}
+	}, [user])
 
 	const handleUpdate = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -21,6 +31,7 @@ export default function ProfilePage() {
 		setSaving(true)
 		setMessage({ type: '', text: '' })
 
+		// Update the public profile
 		const { error } = await supabase.from('profiles').upsert({
 			id: user.id,
 			full_name: formData.full_name,
@@ -32,41 +43,62 @@ export default function ProfilePage() {
 			setMessage({ type: 'error', text: 'Failed to update profile.' })
 		} else {
 			setMessage({ type: 'success', text: 'Changes saved!' })
+			// Sync the global AuthContext state
 			setUser((prev) => (prev ? { ...prev, full_name: formData.full_name, email: formData.email } : prev))
 		}
 		setSaving(false)
 	}
 
-	if (!user) return null
+	if (!user)
+		return (
+			<div className="flex items-center justify-center min-h-[400px]">
+				<Loader2 className="animate-spin text-emerald-500" size={32} />
+			</div>
+		)
 
 	return (
-		<div className="max-w-5xl mx-auto animate-in fade-in duration-500">
+		<div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
 			<header className="mb-10">
-				<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-slate-200 to-slate-500 bg-clip-text text-transparent leading-tight">
+				<h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent leading-tight">
 					Account Settings
 				</h1>
-				<p className="text-slate-500 mt-2 font-medium italic text-sm">Manage your identity and contact information.</p>
+				<p className="text-slate-500 mt-2 font-medium italic text-sm">Manage your identity and contact information for FinMentor AI.</p>
 			</header>
 
 			<div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+				{/* Sidebar Navigation */}
 				<div className="lg:col-span-3 space-y-2">
-					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold bg-blue-600/10 text-blue-400 border border-blue-500/20 rounded-xl transition-all">
+					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl transition-all">
 						<User size={18} /> Public Profile
 					</button>
-					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all cursor-not-allowed">
+					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all cursor-not-allowed group">
 						<Shield size={18} /> Security
+						<span className="ml-auto text-[10px] opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-1.5 py-0.5 rounded">
+							Locked
+						</span>
 					</button>
-					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all cursor-not-allowed">
+					<button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-300 transition-all cursor-not-allowed group">
 						<Bell size={18} /> Notifications
+						<span className="ml-auto text-[10px] opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-1.5 py-0.5 rounded">
+							Locked
+						</span>
 					</button>
 				</div>
 
+				{/* Form Section */}
 				<div className="lg:col-span-9">
-					<form onSubmit={handleUpdate} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-md">
+					<form
+						onSubmit={handleUpdate}
+						className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-md shadow-2xl"
+					>
 						<div className="p-8 space-y-8">
 							{message.text && (
 								<div
-									className={`p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-center ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}
+									className={`p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-center animate-in zoom-in duration-300 ${
+										message.type === 'success'
+											? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+											: 'bg-red-500/10 text-red-400 border border-red-500/20'
+									}`}
 								>
 									{message.text}
 								</div>
@@ -75,13 +107,17 @@ export default function ProfilePage() {
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 								<div className="space-y-3">
 									<label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
-									<input
-										type="text"
-										value={formData.full_name}
-										onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-										className="w-full px-5 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-blue-500/50 transition-all font-medium outline-none"
-										placeholder="Your Name"
-									/>
+									<div className="relative">
+										<User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+										<input
+											type="text"
+											required
+											value={formData.full_name}
+											onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+											className="w-full pl-12 pr-5 py-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all font-medium outline-none"
+											placeholder="Your Name"
+										/>
+									</div>
 								</div>
 
 								<div className="space-y-3">
@@ -90,13 +126,24 @@ export default function ProfilePage() {
 										<Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
 										<input
 											type="email"
+											required
 											value={formData.email}
 											onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-											className="w-full pl-12 pr-5 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-blue-500/50 transition-all font-medium outline-none"
+											className="w-full pl-12 pr-5 py-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all font-medium outline-none"
 											placeholder="demo@example.com"
 										/>
 									</div>
 								</div>
+							</div>
+
+							{/* Info Box */}
+							<div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800/60 flex gap-3 items-start">
+								<Info className="text-emerald-500 shrink-0 mt-0.5" size={16} />
+								<p className="text-[11px] leading-relaxed text-slate-400 font-medium">
+									Note: Updating your email here changes your contact information in the{' '}
+									<span className="text-emerald-400">FinMentor AI</span> database. To change your login credentials, please visit the Security
+									tab (Coming Soon).
+								</p>
 							</div>
 						</div>
 
@@ -104,7 +151,7 @@ export default function ProfilePage() {
 							<button
 								type="submit"
 								disabled={saving}
-								className="w-full md:w-auto min-h-[44px] px-10 py-2 font-bold text-slate-900 bg-gray-100 hover:bg-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 disabled:opacity-50"
+								className="w-full md:w-auto min-h-[44px] px-10 py-2 font-bold text-slate-900 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-95 disabled:opacity-50"
 							>
 								{saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
 								Save Changes

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import supabase from '@/lib/supabaseClient'
 
 type UserState = {
@@ -25,78 +25,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<UserState>(null)
 	const [loading, setLoading] = useState(true)
 
+	// Helper to fetch profile data from our custom 'profiles' table
+	const getProfile = useCallback(async (userId: string, email: string) => {
+		const { data: profile, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single()
+
+		if (error) {
+			console.error('Error fetching profile:', error.message)
+		}
+
+		return {
+			id: userId,
+			email: email || '',
+			full_name: profile?.full_name || 'FinMentor User',
+		}
+	}, [])
+
 	useEffect(() => {
 		let mounted = true
 
-		async function fetchUser() {
-			const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
-			
-			if (!hasSupabaseUrl) {
-				console.warn('Supabase URL not configured locally. Skipping AuthContext user fetch to prevent browser network hang.')
-				if (mounted) {
-					setUser(null)
-					setLoading(false)
-				}
-				return
-			}
-
+		async function initializeAuth() {
 			try {
 				setLoading(true)
-				const { data: { user } } = await supabase.auth.getUser()
+				const {
+					data: { session },
+				} = await supabase.auth.getSession()
 
-				if (user) {
-					const { data: profile } = await supabase
-						.from('profiles')
-						.select('full_name')
-						.eq('id', user.id)
-						.single()
-
-					if (mounted) {
-						setUser({
-							id: user.id,
-							email: user.email || '',
-							full_name: profile?.full_name || '',
-						})
-					}
-				} else {
-					if (mounted) setUser(null)
+				if (session?.user && mounted) {
+					const userData = await getProfile(session.user.id, session.user.email!)
+					setUser(userData)
 				}
 			} catch (error) {
-				console.error('Failed to authenticate session:', error)
-				if (mounted) setUser(null)
+				console.error('Auth initialization failed:', error)
 			} finally {
 				if (mounted) setLoading(false)
 			}
 		}
 
-		fetchUser()
+		initializeAuth()
 
-		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-			if (event === 'SIGNED_OUT' || !session) {
+		// Listen for auth state changes (login, logout, token refresh)
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange(async (event, session) => {
+			if (session?.user) {
+				const userData = await getProfile(session.user.id, session.user.email!)
+				if (mounted) setUser(userData)
+			} else {
 				if (mounted) setUser(null)
-				// Session cleared centrally.
-			} else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-				const { data: profile } = await supabase
-					.from('profiles')
-					.select('full_name')
-					.eq('id', session.user.id)
-					.single()
-
-				if (mounted) {
-					setUser({
-						id: session.user.id,
-						email: session.user.email || '',
-						full_name: profile?.full_name || '',
-					})
-				}
 			}
+			if (mounted) setLoading(false)
 		})
 
 		return () => {
 			mounted = false
 			subscription.unsubscribe()
 		}
-	}, [])
+	}, [getProfile])
 
 	return <AuthContext.Provider value={{ user, loading, setUser }}>{children}</AuthContext.Provider>
 }
