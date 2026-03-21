@@ -65,7 +65,7 @@ export default async function ExpensesPage() {
 			)}
 
 			{/* TABLE SECTION */}
-			<section className="bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 backdrop-blur-sm">
+			<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 backdrop-blur-sm">
 				{isEmptyDatabase ? (
 					<div className="flex flex-col items-center justify-center p-20 text-center relative group">
 						<div className="absolute inset-0 rounded-3xl bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
