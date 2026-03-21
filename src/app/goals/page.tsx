@@ -35,7 +35,6 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 				if (goalsError) {
 					dbError = goalsError.message
 				} else {
-					// Use a fallback empty array to prevent filtering errors if goalsData is null
 					const allGoals = goalsData || []
 
 					// 4. Filter goals based on the 'view' parameter
@@ -54,14 +53,19 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 					goals = filteredGoals.map((g) => {
 						const contributions = allSavings.filter((s) => s.goal_id === g.id)
 
-						// Calculate total: saved_amount (initial) + sum of all contributions
+						// Calculate total contribution amount from history
 						const totalContributionAmount = contributions.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+
+						// Calculate final total including the initial deposit from the goal record
 						const totalSavedCalculated = Number(g.saved_amount || 0) + totalContributionAmount
 
 						return {
-							...g,
+							...g, // Copy all existing goal fields (id, name, deadline, etc.)
 							goal_savings: contributions,
 							total_saved_calculated: totalSavedCalculated,
+							// SAFEGUARD: Ensure target_amount is at least 1.
+							// This prevents "Division by Zero" crashes in your GoalCard calculations.
+							target_amount: Math.max(Number(g.target_amount || 0), 1),
 						}
 					})
 				}

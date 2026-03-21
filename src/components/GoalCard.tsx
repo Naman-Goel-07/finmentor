@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, RotateCcw } from 'lucide-react'
+import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, RotateCcw, Pencil } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { format } from 'date-fns'
 import AddSavingModal from './AddSavingModal'
 import DeleteContributionButton from './DeleteContributionButton'
 import GoalSavingsChart from './GoalSavingsChart'
+import EditGoalModal from './EditGoalModal'
 
 export default function GoalCard({ goal }: { goal: any }) {
 	const router = useRouter()
@@ -70,16 +71,12 @@ export default function GoalCard({ goal }: { goal: any }) {
 		}
 	}
 
-	// 2. Sends the toggle state to API
 	const handleGoalAction = async (action: 'archive' | 'delete') => {
 		if (action === 'delete' && !confirm('Delete this entire goal? History will be lost!')) return
 
 		setLoadingAction(action)
 		try {
-			const body =
-				action === 'archive'
-					? { id: goal.id, is_archived: !goal.is_archived } // Toggle
-					: { id: goal.id }
+			const body = action === 'archive' ? { id: goal.id, is_archived: !goal.is_archived } : { id: goal.id }
 
 			const res = await fetch(`/api/${action}-goal`, {
 				method: 'POST',
@@ -102,9 +99,10 @@ export default function GoalCard({ goal }: { goal: any }) {
 				className={clsx(
 					'bg-white p-4 md:p-6 rounded-3xl shadow-sm border flex flex-col transition-all duration-300 w-full group',
 					isCompleted ? 'border-green-200 bg-green-50/10' : 'border-gray-100',
-					goal.is_archived && 'opacity-75 grayscale-[0.5]', // Visual cue for archived items
+					goal.is_archived && 'opacity-75 grayscale-[0.5]',
 				)}
 			>
+				{/* CARD HEADER (Toggle Collapse) */}
 				<div className="flex justify-between items-start mb-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
 					<div className="flex items-center gap-3">
 						<div
@@ -130,6 +128,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 					<button className="text-gray-400 hover:text-gray-600 p-1">{expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</button>
 				</div>
 
+				{/* PROGRESS SECTION */}
 				<div className="pt-2">
 					<div className="flex justify-between text-sm mb-2 items-end">
 						<div>
@@ -146,6 +145,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 						></div>
 					</div>
 
+					{/* Progress Indicator */}
 					<div className="flex justify-between items-center mt-3">
 						<div className="flex items-center gap-1.5">
 							<div className={clsx('w-1.5 h-1.5 rounded-full', isCompleted ? 'bg-green-500' : 'bg-blue-500')} />
@@ -161,12 +161,18 @@ export default function GoalCard({ goal }: { goal: any }) {
 					</div>
 				</div>
 
+				{/* EXPANDED SECTION */}
 				{expanded && (
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
-						{/* 3. SHOW ACTIONS FOR ALL GOALS, NOT JUST COMPLETED */}
+						{/* 2. UPDATED ACTION ROW WITH EDIT BUTTON */}
 						<div className="flex gap-2 mb-6 mt-6">
+							{/* NEW EDIT BUTTON */}
+							<div className="flex-1">
+								<EditGoalModal goal={goal} />
+							</div>
+
 							<button
 								onClick={() => handleGoalAction('archive')}
 								disabled={loadingAction === 'archive'}
@@ -199,6 +205,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 							</button>
 						</div>
 
+						{/* QUICK SAVE & HISTORY */}
 						{!isCompleted && !goal.is_archived && (
 							<div className="mb-6">
 								<div className="flex justify-between items-center mb-3">
