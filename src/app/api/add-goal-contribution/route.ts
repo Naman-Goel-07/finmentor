@@ -23,7 +23,6 @@ export async function POST(req: Request) {
 					goal_name,
 					target_amount: Number(target_amount),
 					deadline,
-					created_at,
 					is_archived: false,
 				},
 			])
