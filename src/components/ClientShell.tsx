@@ -9,8 +9,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
-// ✅ 1. INITIALIZE OUTSIDE THE COMPONENT
-// This makes the instance stable so it doesn't trigger infinite re-renders.
 const supabase = createClient()
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
@@ -19,15 +17,13 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	const { user, loading, setUser } = useAuth()
 	const pathname = usePathname()
 
-	// 2. Auth Page check
 	const isAuthPage = pathname === '/login' || pathname === '/signup'
 
-	// 3. Real-time Profile Sync
 	useEffect(() => {
 		if (!user || isAuthPage) return
 
 		const channel = supabase
-			.channel(`profile-update-${user.id}`) // Added user.id to make channel unique
+			.channel(`profile-update-${user.id}`)
 			.on(
 				'postgres_changes',
 				{
@@ -49,22 +45,34 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		}
 	}, [user, setUser, isAuthPage])
 
-	// 4. THE "SMART" LOADING CHECK
 	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
 
-	// If we're still loading and have no user, show the spinner
 	if (loading && !user) {
 		return (
 			<div className="flex bg-[#020617] h-screen w-full items-center justify-center flex-col gap-4 text-slate-300">
 				<Loader2 className="animate-spin text-emerald-500" size={48} />
-				<p className="font-semibold tracking-wide animate-pulse">Warming up your dashboard...</p>
+				<p className="font-semibold tracking-wide animate-pulse text-sm">Warming up your dashboard...</p>
 			</div>
 		)
 	}
 
+	const handleLogout = async () => {
+		setProfileOpen(false)
+		// We trigger the signOut and API call, but we move the user immediately
+		// to avoid "UI lag" while waiting for the network.
+		try {
+			await supabase.auth.signOut()
+			await fetch('/api/auth/logout', { method: 'POST' })
+		} finally {
+			window.location.href = '/login'
+		}
+	}
+
+	// Safely get first name
+	const firstName = user?.full_name?.trim().split(' ')[0] || 'User'
+
 	return (
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
-			{/* Pass user info to Sidebar if needed */}
 			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
 			<div className="flex-1 flex flex-col h-screen min-w-0 w-full overflow-hidden relative">
@@ -73,6 +81,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 						<div className="flex items-center gap-3">
 							<button
 								onClick={() => setSidebarOpen(true)}
+								aria-label="Open sidebar"
 								className="md:hidden text-slate-400 cursor-pointer p-2 hover:bg-slate-800 rounded-xl transition-all outline-none"
 							>
 								<Menu size={20} />
@@ -80,13 +89,12 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor AI</h1>
 						</div>
 
-						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
-							{user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
-						</div>
+						<div className="hidden md:block text-sm text-slate-400 font-medium italic">Welcome back, {firstName}! 👋</div>
 
 						<div className="relative">
 							<button
 								onClick={() => setProfileOpen(!profileOpen)}
+								aria-expanded={profileOpen}
 								className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-800 transition-all cursor-pointer outline-none group"
 							>
 								<div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white border-2 border-slate-800 shadow-lg overflow-hidden shrink-0">
@@ -111,12 +119,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 										</Link>
 										<div className="h-px bg-slate-800 my-1 mx-2" />
 										<button
-											onClick={async () => {
-												setProfileOpen(false)
-												await supabase.auth.signOut()
-												await fetch('/api/auth/logout', { method: 'POST' })
-												window.location.href = '/login'
-											}}
+											onClick={handleLogout}
 											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
 										>
 											<LogOut size={16} /> Log Out

@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-// ✅ 1. INITIALIZE OUTSIDE
 const supabase = createClient()
 
 type UserState = {
@@ -28,62 +27,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<UserState>(null)
 	const [loading, setLoading] = useState(true)
 
-	const getProfile = useCallback(async (userId: string, email: string) => {
-		console.log('🔍 [AuthContext] Fetching profile for:', userId)
-
-		// Create a promise that rejects after 2 seconds
-		const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
-
+	/**
+	 * Fetches additional profile data.
+	 * In production, we treat this as a non-blocking enhancement.
+	 */
+	const fetchProfileData = useCallback(async (userId: string, email: string) => {
 		try {
-			// Race the Supabase query against our timeout
-			const profileQuery = supabase.from('profiles').select('full_name').eq('id', userId).single()
+			const { data, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single()
 
-			const result = (await Promise.race([profileQuery, timeout])) as any
+			if (error && error.code !== 'PGRST116') {
+				// PGRST116 is simply "no rows found", which is handled by the default return
+				console.error('[AuthContext] Profile Fetch Error:', error.message)
+			}
 
 			return {
 				id: userId,
-				email: email || '',
-				full_name: result.data?.full_name || 'FinMentor User',
+				email: email,
+				full_name: data?.full_name || 'FinMentor User',
 			}
 		} catch (err) {
-			console.warn('⚠️ [AuthContext] Profile fetch failed or timed out. Using default.')
-			return {
-				id: userId,
-				email: email || '',
-				full_name: 'FinMentor User',
-			}
+			return { id: userId, email: email, full_name: 'FinMentor User' }
 		}
 	}, [])
 
 	useEffect(() => {
 		let mounted = true
-		console.log('🚀 [AuthContext] Initializing Auth...')
 
 		async function initializeAuth() {
 			try {
 				const {
 					data: { session },
-					error,
 				} = await supabase.auth.getSession()
 
-				if (error) {
-					console.error('❌ [AuthContext] Session error:', error.message)
-				}
-
 				if (session?.user && mounted) {
-					console.log('✅ [AuthContext] Session found:', session.user.email)
-					const userData = await getProfile(session.user.id, session.user.email!)
-					setUser(userData)
+					// 1. Set the user immediately using session data so the UI unlocks
+					setUser({
+						id: session.user.id,
+						email: session.user.email || '',
+						full_name: 'FinMentor User', // Placeholder while we fetch the real name
+					})
+					setLoading(false)
+
+					// 2. Fetch the detailed profile in the background
+					const fullProfile = await fetchProfileData(session.user.id, session.user.email || '')
+					if (mounted) setUser(fullProfile)
 				} else {
-					console.log('ℹ️ [AuthContext] No session found on mount')
+					if (mounted) setLoading(false)
 				}
 			} catch (error) {
-				console.error('❌ [AuthContext] Init failed:', error)
-			} finally {
-				if (mounted) {
-					console.log('🏁 [AuthContext] Loading set to false')
-					setLoading(false)
-				}
+				console.error('[AuthContext] Initialization Critical Failure:', error)
+				if (mounted) setLoading(false)
 			}
 		}
 
@@ -92,34 +85,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange(async (event, session) => {
-			console.log('🔄 [AuthContext] Auth Event:', event)
-			if (session?.user) {
-				const userData = await getProfile(session.user.id, session.user.email!)
-				if (mounted) setUser(userData)
-			} else {
-				if (mounted) setUser(null)
+			if (event === 'SIGNED_OUT') {
+				if (mounted) {
+					setUser(null)
+					setLoading(false)
+				}
+			} else if (session?.user && mounted) {
+				// Handle SIGNED_IN or TOKEN_REFRESHED
+				const userData = await fetchProfileData(session.user.id, session.user.email || '')
+				if (mounted) {
+					setUser(userData)
+					setLoading(false)
+				}
 			}
-			if (mounted) setLoading(false)
 		})
 
-		// 🚨 EMERGENCY UNLOCK: If still loading after 5s, something is wrong
-		const timer = setTimeout(() => {
-			if (mounted && loading) {
-				console.warn('⚠️ [AuthContext] Emergency Unlock triggered!')
-				setLoading(false)
-			}
-		}, 5000)
-
 		return () => {
-			mounted = false
+			mounted = true
 			subscription.unsubscribe()
-			clearTimeout(timer)
 		}
-	}, [getProfile]) // Removed 'loading' from dependencies to prevent loops
+	}, [fetchProfileData])
 
-	const value = useMemo(() => ({ user, loading, setUser }), [user, loading])
+	// Memoizing the value prevents unnecessary re-renders of the component tree
+	const contextValue = useMemo(() => ({ user, loading, setUser }), [user, loading])
 
-	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+	return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)
