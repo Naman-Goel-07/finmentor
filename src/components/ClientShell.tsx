@@ -14,9 +14,14 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	const [profileOpen, setProfileOpen] = useState(false)
 	const { user, loading, setUser } = useAuth()
 	const pathname = usePathname()
-
 	const supabase = createClient()
 
+	// 1. Move Auth Page check to the VERY TOP
+	// If we are on login/signup, we don't care about loading or shell
+	const isAuthPage = pathname === '/login' || pathname === '/signup'
+	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
+
+	// 2. Real-time Profile Sync
 	useEffect(() => {
 		if (!user) return
 		const channel = supabase
@@ -40,29 +45,25 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		return () => {
 			supabase.removeChannel(channel)
 		}
-	}, [user, setUser])
+	}, [user, setUser, supabase])
 
-	// 1. Loading UI
-	if (loading) {
+	// 3. THE "SMART" LOADING CHECK
+	// If we are on a protected route (Dashboard/Expenses), the Middleware
+	// has already confirmed we are logged in.
+	// We only show the loader if we have NO user AND we are still loading.
+	if (loading && !user) {
 		return (
 			<div className="flex bg-[#020617] h-screen w-full items-center justify-center flex-col gap-4 text-slate-300">
-				<Loader2 className="animate-spin" size={48} />
+				<Loader2 className="animate-spin text-emerald-500" size={48} />
 				<p className="font-semibold tracking-wide animate-pulse">Warming up your dashboard...</p>
 			</div>
 		)
 	}
 
-	// 2. Hide Shell for public auth routes
-	const isAuthPage = pathname === '/login' || pathname === '/signup'
-	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
-
 	return (
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
-			{/* 1. SIDEBAR: Ensure Sidebar.tsx uses 'fixed' on mobile */}
-			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={{ name: user?.full_name || user?.email || '', avatar: '' }} />
+			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-			{/* 2. MAIN CONTENT WRAPPER */}
-			{/* Added 'min-w-0' and 'w-full' to force it to ignore the sidebar's width on mobile */}
 			<div className="flex-1 flex flex-col h-screen min-w-0 w-full overflow-hidden relative">
 				<header className="bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/60 h-16 flex items-center shrink-0 z-30">
 					<div className="max-w-6xl mx-auto w-full px-4 md:px-8 flex items-center justify-between">
@@ -73,12 +74,11 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 							>
 								<Menu size={20} />
 							</button>
-							{/* Hide logo on desktop because it's in the sidebar */}
 							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor</h1>
 						</div>
 
 						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
-							{user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
+							{user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}! 👋` : 'FinMentor AI 👋'}
 						</div>
 
 						<div className="relative">
@@ -110,8 +110,8 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 										<button
 											onClick={async () => {
 												setProfileOpen(false)
-												await fetch('/api/auth/logout', { method: 'POST' })
 												await supabase.auth.signOut()
+												await fetch('/api/auth/logout', { method: 'POST' })
 												window.location.href = '/login'
 											}}
 											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
@@ -125,11 +125,15 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 					</div>
 				</header>
 
-				<main className="flex-1 overflow-y-auto bg-[#020617] relative">
+				<main
+					className={clsx(
+						'flex-1 overflow-y-auto bg-[#020617] relative transition-opacity duration-500',
+						loading && !user ? 'opacity-0' : 'opacity-100', // Subtle fade-in once ready
+					)}
+				>
 					<div className="max-w-6xl mx-auto w-full p-4 md:p-8 min-h-full overflow-x-hidden">{children}</div>
 				</main>
 
-				{/* MOBILE OVERLAY: Dims the screen when sidebar is open */}
 				{sidebarOpen && (
 					<div
 						className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300"
