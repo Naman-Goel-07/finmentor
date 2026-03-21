@@ -9,23 +9,25 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
+// ✅ 1. INITIALIZE OUTSIDE THE COMPONENT
+// This makes the instance stable so it doesn't trigger infinite re-renders.
+const supabase = createClient()
+
 export default function ClientShell({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [profileOpen, setProfileOpen] = useState(false)
 	const { user, loading, setUser } = useAuth()
 	const pathname = usePathname()
-	const supabase = createClient()
 
-	// 1. Move Auth Page check to the VERY TOP
-	// If we are on login/signup, we don't care about loading or shell
+	// 2. Auth Page check
 	const isAuthPage = pathname === '/login' || pathname === '/signup'
-	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
 
-	// 2. Real-time Profile Sync
+	// 3. Real-time Profile Sync
 	useEffect(() => {
-		if (!user) return
+		if (!user || isAuthPage) return
+
 		const channel = supabase
-			.channel(`profile-update`)
+			.channel(`profile-update-${user.id}`) // Added user.id to make channel unique
 			.on(
 				'postgres_changes',
 				{
@@ -35,8 +37,8 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 					filter: `id=eq.${user.id}`,
 				},
 				(payload) => {
-					if (payload?.new) {
-						setUser((prev) => (prev ? { ...prev, full_name: payload.new.full_name || '' } : prev))
+					if (payload?.new && payload.new.full_name) {
+						setUser((prev) => (prev ? { ...prev, full_name: payload.new.full_name } : prev))
 					}
 				},
 			)
@@ -45,12 +47,12 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 		return () => {
 			supabase.removeChannel(channel)
 		}
-	}, [user, setUser, supabase])
+	}, [user, setUser, isAuthPage])
 
-	// 3. THE "SMART" LOADING CHECK
-	// If we are on a protected route (Dashboard/Expenses), the Middleware
-	// has already confirmed we are logged in.
-	// We only show the loader if we have NO user AND we are still loading.
+	// 4. THE "SMART" LOADING CHECK
+	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
+
+	// If we're still loading and have no user, show the spinner
 	if (loading && !user) {
 		return (
 			<div className="flex bg-[#020617] h-screen w-full items-center justify-center flex-col gap-4 text-slate-300">
@@ -62,6 +64,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 
 	return (
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
+			{/* Pass user info to Sidebar if needed */}
 			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
 			<div className="flex-1 flex flex-col h-screen min-w-0 w-full overflow-hidden relative">
@@ -74,11 +77,11 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 							>
 								<Menu size={20} />
 							</button>
-							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor</h1>
+							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor AI</h1>
 						</div>
 
 						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
-							{user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}! 👋` : 'FinMentor AI 👋'}
+							{user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
 						</div>
 
 						<div className="relative">
@@ -128,7 +131,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 				<main
 					className={clsx(
 						'flex-1 overflow-y-auto bg-[#020617] relative transition-opacity duration-500',
-						loading && !user ? 'opacity-0' : 'opacity-100', // Subtle fade-in once ready
+						loading && !user ? 'opacity-0' : 'opacity-100',
 					)}
 				>
 					<div className="max-w-6xl mx-auto w-full p-4 md:p-8 min-h-full overflow-x-hidden">{children}</div>
