@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import DashboardCharts from '@/components/DashboardCharts'
 import { AlertCircle, ArrowUpRight, IndianRupee, Activity, Star } from 'lucide-react'
 import Link from 'next/link'
@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 	let goalsCount = 0
 
 	if (hasSupabaseUrl) {
-		const supabase = createClient()
+		const supabase = await createClient()
 
 		try {
 			const {

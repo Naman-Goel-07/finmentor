@@ -1,5 +1,5 @@
 import { AlertCircle, Plus } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import AddExpenseModal from '@/components/AddExpenseModal'
 import DeleteExpenseButton from '@/components/DeleteExpenseButton'
 
@@ -16,7 +16,7 @@ export default async function ExpensesPage() {
 
 	// 2. Fetch Data
 	if (!isMissingSupabase) {
-		const supabase = createClient()
+		const supabase = await createClient()
 		
 		try {
 			const { data: { user } } = await supabase.auth.getUser()

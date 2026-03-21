@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import AddGoalModal from '@/components/AddGoalModal'
 import GoalCard from '@/components/GoalCard'
 import { AlertCircle, Target, ArrowLeft, Archive } from 'lucide-react'
@@ -17,7 +17,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 	let dbError = null
 
 	if (hasSupabaseUrl) {
-		const supabase = createClient()
+		const supabase = await createClient()
 
 		try {
 			const {
