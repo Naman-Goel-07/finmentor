@@ -3,16 +3,18 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client' // Updated import
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle, Shield } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
 	const router = useRouter()
-	const supabase = createClient() // Initialize the SSR-ready browser client
+	const supabase = createClient()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+
+	const [showForgotModal, setShowForgotModal] = useState(false)
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -20,8 +22,6 @@ export default function LoginPage() {
 		setError(null)
 
 		try {
-			// 1. Authenticate with Supabase
-			// The SSR client automatically handles setting the cookies!
 			const { error: authError } = await supabase.auth.signInWithPassword({
 				email,
 				password,
@@ -34,8 +34,6 @@ export default function LoginPage() {
 				throw authError
 			}
 
-			// 2. Redirect to Dashboard
-			// router.refresh() ensures the middleware picks up the new cookie immediately
 			router.push('/dashboard')
 			router.refresh()
 		} catch (err: any) {
@@ -102,6 +100,17 @@ export default function LoginPage() {
 								placeholder="••••••••"
 							/>
 						</div>
+
+						{/* Forgot Password Link */}
+						<div className="flex justify-end mt-2">
+							<button
+								type="button"
+								onClick={() => setShowForgotModal(true)}
+								className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+							>
+								Forgot Password?
+							</button>
+						</div>
 					</div>
 
 					<button
@@ -121,10 +130,39 @@ export default function LoginPage() {
 					</Link>
 				</p>
 			</div>
+
+			{/* Forgot Password Modal (Smoke & Mirrors) */}
+			{showForgotModal && (
+				<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+					<div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center">
+						<div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 mx-auto">
+							<Shield className="text-blue-400" size={32} />
+						</div>
+
+						<h3 className="text-xl font-bold text-white mb-4">Password Reset</h3>
+
+						<p className="text-slate-400 text-sm leading-relaxed mb-8">
+							For security purposes during the **FinMentor AI Beta**, please contact
+							<span className="text-blue-400 font-bold ml-1">letyuvstudy@gmail.com</span> to manually reset your password, or simply create a new
+							account.
+						</p>
+
+						<button
+							onClick={() => setShowForgotModal(false)}
+							className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all active:scale-95"
+						>
+							Got it, thanks!
+						</button>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }
 
+function LoginMessages() {
+	// ... (Keep existing LoginMessages code)
+}
 function LoginMessages() {
 	const searchParams = useSearchParams()
 	const msg = searchParams.get('message')
