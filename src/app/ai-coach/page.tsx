@@ -25,7 +25,6 @@ export default function AICoachPage() {
 
 	const supabase = createClient()
 
-	// Cycles through loading messages every 3 seconds
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -47,7 +46,6 @@ export default function AICoachPage() {
 			} = await supabase.auth.getUser()
 			if (!user) throw new Error('Unauthorized')
 
-			// Parallel fetch for speed
 			const [expensesRes, goalsRes] = await Promise.all([
 				supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', user.id).eq('is_archived', false),
@@ -87,7 +85,6 @@ export default function AICoachPage() {
 				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini Flash.</p>
 			</header>
 
-			{/* Clean Action Card */}
 			{!advice && !loading && (
 				<div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative">
 					<div className="p-8 md:p-12 text-center relative z-10">
@@ -122,7 +119,6 @@ export default function AICoachPage() {
 				</div>
 			)}
 
-			{/* Dynamic Loading State */}
 			{loading && (
 				<div className="flex flex-col items-center justify-center py-20">
 					<div className="relative">
@@ -130,11 +126,9 @@ export default function AICoachPage() {
 						<Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-bounce" size={24} />
 					</div>
 					<p className="text-xl font-medium text-gray-600">{LOADING_MESSAGES[loadingMsgIndex]}</p>
-					<p className="text-sm text-gray-400 mt-2 italic">Checking deadlines and spending leaks...</p>
 				</div>
 			)}
 
-			{/* Error State */}
 			{error && (
 				<div className="bg-red-50 border-2 border-red-100 rounded-2xl p-6 mb-8 flex items-start">
 					<AlertCircle className="w-6 h-6 mr-4 text-red-600 mt-1 shrink-0" />
@@ -145,19 +139,19 @@ export default function AICoachPage() {
 				</div>
 			)}
 
-			{/* Advice Result */}
 			{advice && (
 				<div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+					{/* Dark Stats Grid */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-							<TrendingDown className="text-indigo-600 mb-2" size={24} />
-							<p className="text-sm text-gray-500 font-bold uppercase tracking-tight">Items Scanned</p>
-							<p className="text-2xl font-bold">{expenseCount}</p>
+						<div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+							<TrendingDown className="text-indigo-400 mb-2" size={24} />
+							<p className="text-sm text-slate-400 font-bold uppercase tracking-tight">Items Scanned</p>
+							<p className="text-2xl font-bold text-white">{expenseCount}</p>
 						</div>
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-							<Target className="text-amber-500 mb-2" size={24} />
-							<p className="text-sm text-gray-500 font-bold uppercase tracking-tight">Budget Limit</p>
-							<p className="text-2xl font-bold">₹{monthlyBudget}</p>
+						<div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+							<Target className="text-amber-400 mb-2" size={24} />
+							<p className="text-sm text-slate-400 font-bold uppercase tracking-tight">Budget Limit</p>
+							<p className="text-2xl font-bold text-white">₹{monthlyBudget}</p>
 						</div>
 						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
 							<Sparkles className="text-green-500 mb-2" size={24} />
@@ -166,25 +160,29 @@ export default function AICoachPage() {
 						</div>
 					</div>
 
-					<div className="bg-white border border-gray-100 rounded-3xl p-6 md:p-10 shadow-xl relative w-full overflow-hidden">
-						<div className="prose prose-slate max-w-none w-full text-left">
+					{/* Dark AI Advice Card */}
+					<div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-xl shadow-slate-950/20 relative w-full overflow-hidden">
+						<div className="prose prose-slate prose-invert max-w-none w-full text-left">
 							<ReactMarkdown
 								components={{
-									h1: ({ ...props }) => <h1 className="text-2xl font-bold mb-6 border-b pb-4 text-gray-900" {...props} />,
+									h1: ({ ...props }) => <h1 className="text-2xl font-bold mb-6 border-b border-slate-700 pb-4 text-white" {...props} />,
 									h2: ({ ...props }) => (
-										<h2 className="text-xl font-bold mt-8 mb-4 text-gray-900 border-l-4 border-indigo-600 pl-3" {...props} />
+										<h2 className="text-xl font-bold mt-8 mb-4 text-white border-l-4 border-indigo-600 pl-3" {...props} />
 									),
-									p: ({ ...props }) => <p className="text-gray-700 text-base leading-relaxed mb-4 font-medium" {...props} />,
+									p: ({ ...props }) => <p className="text-slate-300 text-base leading-relaxed mb-4 font-medium" {...props} />,
 									ul: ({ ...props }) => <ul className="space-y-3 my-4 list-none pl-0 w-full" {...props} />,
 									li: ({ children, ...props }) => (
-										<li className="flex items-start gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2 w-full" {...props}>
-											<ChevronRight size={18} className="mt-1 text-indigo-500 shrink-0" />
-											<span className="text-gray-900 font-semibold">{children}</span>
+										<li
+											className="flex items-start gap-2 bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2 w-full text-left"
+											{...props}
+										>
+											<ChevronRight size={18} className="mt-1 text-indigo-400 shrink-0" />
+											<span className="text-white font-semibold">{children}</span>
 										</li>
 									),
-									strong: ({ ...props }) => <strong className="font-bold text-indigo-600" {...props} />,
+									strong: ({ ...props }) => <strong className="font-bold text-indigo-400" {...props} />,
 									blockquote: ({ ...props }) => (
-										<div className="bg-slate-900 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500 w-full" {...props} />
+										<div className="bg-black/40 text-white p-6 my-6 italic rounded-2xl border-l-8 border-indigo-500 w-full" {...props} />
 									),
 								}}
 							>
@@ -192,11 +190,11 @@ export default function AICoachPage() {
 							</ReactMarkdown>
 						</div>
 
-						<div className="mt-10 pt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-							<p className="text-xs text-gray-400 uppercase tracking-widest font-bold">FinMentor AI Coach v2.1</p>
+						<div className="mt-10 pt-6 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+							<p className="text-xs text-slate-500 uppercase tracking-widest font-bold">FinMentor AI Coach v2.1</p>
 							<button
 								onClick={handleAnalyze}
-								className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors underline decoration-2 underline-offset-4 cursor-pointer"
+								className="text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors underline decoration-2 underline-offset-4 cursor-pointer"
 							>
 								Run New Audit
 							</button>
