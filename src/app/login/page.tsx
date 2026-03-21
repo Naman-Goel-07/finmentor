@@ -74,16 +74,18 @@ export default function LoginPage() {
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
 						{/* ... email input ... */}
 					</div>
-
 					{/* Password Section */}
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Password</label>
 						<div className="relative">
 							{/* ... lock icon ... */}
 							<input
-								type={showPassword ? "text" : "password"}
-								{/* ... other props ... */}
+								type={showPassword ? 'text' : 'password'}
+								required
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
 								className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+								placeholder="••••••••"
 							/>
 							<button
 								type="button"
@@ -104,8 +106,8 @@ export default function LoginPage() {
 								Forgot Password?
 							</button>
 						</div>
-					</div> {/* This div closes the entire Password + Forgot Link group */}
-
+					</div>{' '}
+					{/* This div closes the entire Password + Forgot Link group */}
 					<button
 						type="submit"
 						disabled={loading}
