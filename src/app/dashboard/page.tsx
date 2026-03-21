@@ -74,19 +74,20 @@ export default async function DashboardPage() {
 			)}
 
 			{hasNoData ? (
-				<section className="bg-slate-900/40 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm animate-in zoom-in-95 duration-500 flex flex-col items-center">
-					<div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 shadow-inner">
+				<section className="bg-slate-900/40 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm animate-in zoom-in-95 duration-500 flex flex-col items-center relative overflow-hidden group">
+					<div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+					<div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
 						<Star className="text-emerald-400 fill-emerald-500/10" size={32} />
 					</div>
-					<h2 className="text-3xl font-extrabold text-white mb-3">Welcome! Let&apos;s start managing your finances 🚀</h2>
-					<p className="text-slate-400 max-w-lg mx-auto mb-10 font-medium text-[15px] leading-relaxed">
+					<h2 className="text-3xl font-extrabold text-white mb-3 z-10 relative">Welcome! Let&apos;s start managing your finances 🚀</h2>
+					<p className="text-slate-400 max-w-lg mx-auto mb-10 font-medium text-[15px] leading-relaxed z-10 relative">
 						Start by adding your first expense or setting your first savings goal. FinMentor is here to help!
 					</p>
-					<div className="flex flex-col sm:flex-row justify-center gap-6 w-full max-w-sm mx-auto p-4 animate-in fade-in zoom-in duration-700 delay-150">
-						<div className="w-full relative z-10 shadow-emerald-500/10 shadow-2xl rounded-xl cursor-pointer active:scale-95 transition-all">
+					<div className="flex flex-col sm:flex-row justify-center gap-6 w-full max-w-md mx-auto z-10 relative">
+						<div className="flex-1 relative shadow-emerald-500/10 shadow-2xl rounded-xl">
 							<AddExpenseModal />
 						</div>
-						<div className="w-full relative z-10 shadow-amber-500/10 shadow-2xl rounded-xl cursor-pointer active:scale-95 transition-all">
+						<div className="flex-1 relative shadow-amber-500/10 shadow-2xl rounded-xl">
 							<AddGoalModal />
 						</div>
 					</div>
