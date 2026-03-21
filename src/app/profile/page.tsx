@@ -81,25 +81,38 @@ export default function ProfilePage() {
 		setPasswordSaving(true)
 		setPasswordMessage({ type: '', text: '' })
 
+		// 🚨 THE FAIL-SAFE: If Supabase hangs for more than 4 seconds, force it to unlock.
+		const failsafeTimer = setTimeout(() => {
+			console.warn('Supabase password update is hanging. Forcing unlock...')
+			setPasswordSaving(false)
+			setPasswordMessage({ type: 'error', text: 'Network timeout. Your password may have still updated. Please refresh and try again.' })
+		}, 4000)
+
 		try {
-			// ✅ Updates the user's password securely in Supabase Auth
+			console.log('Sending password update request to Supabase...')
+
 			const { error } = await supabase.auth.updateUser({
 				password: newPassword,
 			})
 
+			// If it finishes successfully, immediately kill the failsafe timer!
+			clearTimeout(failsafeTimer)
+
 			if (error) throw error
 
+			console.log('Password update successful!')
 			setPasswordMessage({ type: 'success', text: 'Password updated successfully!' })
 			setNewPassword('')
 			setConfirmPassword('')
 		} catch (error: any) {
+			clearTimeout(failsafeTimer)
 			console.error('Password Update Error:', error.message)
 			setPasswordMessage({ type: 'error', text: error.message || 'Failed to update password.' })
 		} finally {
+			// Ensure the button unlocks no matter what
 			setPasswordSaving(false)
 		}
 	}
-
 	if (!user)
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
