@@ -18,15 +18,14 @@ export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: 
 		setError('')
 
 		try {
-			const res = await fetch('/api/update-goal', {
+			const res = await fetch('/api/add-goal-contribution', {
+				// 1. Updated URL
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					id: goalId, // API expects 'id'
-					amountToAdd: parseFloat(amount), // API expects 'amountToAdd'
-					note: note || 'Manual Contribution', // Optional: add note to your API later
+					goal_id: goalId, // 2. Updated key: goal_id
+					amount: parseFloat(amount), // 3. Updated key: amount
+					note: note || 'Manual Contribution',
 				}),
 			})
 

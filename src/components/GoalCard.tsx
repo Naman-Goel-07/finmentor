@@ -5,10 +5,12 @@ import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, R
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { format } from 'date-fns'
-import AddSavingModal from './AddSavingModal'
+import AddContributionModal from './AddContributionModal'
 import DeleteContributionButton from './DeleteContributionButton'
 import GoalSavingsChart from './GoalSavingsChart'
 import EditGoalModal from './EditGoalModal'
+// 1. IMPORT THE EDIT CONTRIBUTION MODAL
+import EditContributionModal from './EditContributionModal'
 
 export default function GoalCard({ goal }: { goal: any }) {
 	const router = useRouter()
@@ -57,13 +59,20 @@ export default function GoalCard({ goal }: { goal: any }) {
 		setLoadingAction(amount)
 		setErrorAmount(null)
 		try {
-			const res = await fetch('/api/update-goal', {
+			const res = await fetch('/api/add-goal-contribution', {
+				// 1. Updated URL
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id: goal.id, amountToAdd: amount }),
+				body: JSON.stringify({
+					goal_id: goal.id, // 2. Updated key: goal_id
+					amount: amount, // 3. Updated key: amount
+					note: 'Quick Save', // 4. Added a default note for history
+				}),
 			})
+
 			if (!res.ok) throw new Error('Update failed')
-			handleManualRefresh()
+
+			handleManualRefresh() // This triggers router.refresh() to show the new history row
 		} catch (err: any) {
 			setErrorAmount('Failed to update.')
 		} finally {
@@ -94,7 +103,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 
 	return (
 		<>
-			{showSavingModal && <AddSavingModal goalId={goal.id} goalName={goal.goal_name} onClose={() => setShowSavingModal(false)} />}
+			{showSavingModal && <AddContributionModal goalId={goal.id} goalName={goal.goal_name} onClose={() => setShowSavingModal(false)} />}
 			<div
 				className={clsx(
 					'bg-white p-4 md:p-6 rounded-3xl shadow-sm border flex flex-col transition-all duration-300 w-full group',
@@ -102,7 +111,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 					goal.is_archived && 'opacity-75 grayscale-[0.5]',
 				)}
 			>
-				{/* CARD HEADER (Toggle Collapse) */}
+				{/* CARD HEADER */}
 				<div className="flex justify-between items-start mb-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
 					<div className="flex items-center gap-3">
 						<div
@@ -145,7 +154,6 @@ export default function GoalCard({ goal }: { goal: any }) {
 						></div>
 					</div>
 
-					{/* Progress Indicator */}
 					<div className="flex justify-between items-center mt-3">
 						<div className="flex items-center gap-1.5">
 							<div className={clsx('w-1.5 h-1.5 rounded-full', isCompleted ? 'bg-green-500' : 'bg-blue-500')} />
@@ -166,9 +174,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
-						{/* 2. UPDATED ACTION ROW: Archive → Edit → Delete */}
 						<div className="flex gap-2 mb-6 mt-6">
-							{/* 1. ARCHIVE / RESTORE */}
 							<button
 								onClick={() => handleGoalAction('archive')}
 								disabled={loadingAction === 'archive'}
@@ -187,12 +193,10 @@ export default function GoalCard({ goal }: { goal: any }) {
 								)}
 							</button>
 
-							{/* 2. EDIT */}
 							<div className="flex-1 h-9">
 								<EditGoalModal goal={goal} />
 							</div>
 
-							{/* 3. DELETE */}
 							<button
 								onClick={() => handleGoalAction('delete')}
 								disabled={loadingAction === 'delete'}
@@ -208,11 +212,10 @@ export default function GoalCard({ goal }: { goal: any }) {
 							</button>
 						</div>
 
-						{/* QUICK SAVE & HISTORY */}
 						{!isCompleted && !goal.is_archived && (
 							<div className="mb-6">
 								<div className="flex justify-between items-center mb-3">
-									<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Save</p>
+									<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Contribution</p>
 									<button onClick={() => setShowSavingModal(true)} className="text-[10px] font-bold text-blue-600 hover:underline">
 										Custom Amount
 									</button>
@@ -242,19 +245,23 @@ export default function GoalCard({ goal }: { goal: any }) {
 											className="group/item flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-100 transition-all"
 										>
 											<div className="flex flex-col">
-												<span className="text-xs font-bold text-gray-800">{entry.note || 'Saved amount'}</span>
+												<span className="text-xs font-bold text-gray-800">{entry.note || 'Contribution'}</span>
 												<span className="text-[10px] text-gray-400 font-medium">
 													{format(new Date(entry.created_at), 'dd MMM, yyyy')}
 												</span>
 											</div>
 											<div className="flex items-center gap-3">
 												<span className="text-xs font-black text-green-600">+₹{entry.amount.toLocaleString()}</span>
+
+												{/* 2. INSERT EDIT CONTRIBUTION MODAL HERE */}
+												<EditContributionModal contribution={entry} goalName={goal.goal_name} />
+
 												<DeleteContributionButton id={entry.id} onSuccess={handleManualRefresh} />
 											</div>
 										</div>
 									))
 								) : (
-									<p className="text-xs text-gray-400 italic text-center py-4">No records found.</p>
+									<p className="text-xs text-gray-400 italic text-center py-4">No contributions found.</p>
 								)}
 							</div>
 						</div>
