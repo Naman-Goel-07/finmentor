@@ -74,8 +74,8 @@ export default async function DashboardPage() {
 			)}
 
 			{hasNoData ? (
-				<section className="bg-slate-900/40 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm animate-in zoom-in-95 duration-500 flex flex-col items-center relative overflow-hidden group">
-					<div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+				<section className="bg-slate-900/40 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm animate-in zoom-in-95 duration-500 flex flex-col items-center relative group">
+					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-emerald-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 					<div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
 						<Star className="text-emerald-400 fill-emerald-500/10" size={32} />
 					</div>

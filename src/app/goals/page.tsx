@@ -129,8 +129,8 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
 
 			{/* Empty State */}
 			{isEmptyDatabase ? (
-				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-20 text-center backdrop-blur-sm relative overflow-hidden group animate-in zoom-in-95 duration-500">
-					<div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-20 text-center backdrop-blur-sm relative group animate-in zoom-in-95 duration-500">
+					<div className="absolute inset-0 rounded-3xl bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 					<div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
 						<Target className="text-amber-400 drop-shadow-lg" size={48} />
 					</div>
