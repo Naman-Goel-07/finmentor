@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client' // Updated import
+import { createClient } from '@/lib/supabaseClient' // Updated import
 
 export default function LoginPage() {
 	const router = useRouter()
