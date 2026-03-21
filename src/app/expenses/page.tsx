@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import AddExpenseModal from '@/components/AddExpenseModal'
 import DeleteExpenseButton from '@/components/DeleteExpenseButton'
 
-export const revalidate = 0 // Ensures the page always fetches fresh data
+export const revalidate = 60
 
 export default async function ExpensesPage() {
 	// 1. Check Configuration

@@ -6,7 +6,7 @@ import AddExpenseModal from '@/components/AddExpenseModal'
 import AddGoalModal from '@/components/AddGoalModal'
 import WelcomeHeader from '@/components/WelcomeHeader'
 
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function DashboardPage() {
 	const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_project_url'
