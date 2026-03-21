@@ -129,7 +129,6 @@ export default function AICoachPage() {
 						<Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-bounce" size={24} />
 					</div>
 					<p className="text-xl font-medium text-slate-200">{LOADING_MESSAGES[loadingMsgIndex]}</p>
-					<p className="text-sm text-slate-500 mt-2 italic">Checking deadlines and spending leaks...</p>
 				</div>
 			)}
 
