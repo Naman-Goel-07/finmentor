@@ -82,9 +82,6 @@ export default function ProfilePage() {
 		setPasswordMessage({ type: '', text: '' })
 
 		try {
-			console.log('Pinging secure server route...')
-
-			// Send the request to your new backend route
 			const response = await fetch('/api/auth/update-password', {
 				method: 'POST',
 				headers: {
@@ -95,13 +92,11 @@ export default function ProfilePage() {
 
 			const data = await response.json()
 
-			// If the server kicks back an error status, throw it to the catch block
 			if (!response.ok) {
 				throw new Error(data.error || 'Failed to update password')
 			}
 
-			console.log('Server confirmed password update!')
-			setPasswordMessage({ type: 'success', text: 'Password updated successfully! 🎉' })
+			setPasswordMessage({ type: 'success', text: 'Password updated successfully!' })
 			setNewPassword('')
 			setConfirmPassword('')
 		} catch (error: any) {
