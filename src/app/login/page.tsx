@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle, Shield } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle, Shield, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -11,6 +11,7 @@ export default function LoginPage() {
 	const supabase = createClient()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
+	const [showPassword, setShowPassword] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
@@ -87,19 +88,31 @@ export default function LoginPage() {
 
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Password</label>
-						<div className="relative">
-							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-								<Lock className="h-5 w-5 text-slate-500" />
-							</div>
-							<input
-								type="password"
-								required
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
-								placeholder="••••••••"
-							/>
-						</div>
+    					<div className="relative">
+        					<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            					<Lock className="h-5 w-5 text-slate-500" />
+       						</div>
+        
+        				<input
+							type={showPassword ? "text" : "password"}
+							required
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							{/* Added 'pr-12' so text doesn't hide under the eye icon */}
+							className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+							placeholder="••••••••"
+						/>
+
+						<button
+							type="button"
+							onClick={() => setShowPassword(!showPassword)}
+							className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+							tabIndex={-1} // Prevents tabbing to the icon for better keyboard UX
+						>
+							{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+						</button>
+					</div>
+				</div>
 
 						{/* Forgot Password Link */}
 						<div className="flex justify-end mt-2">

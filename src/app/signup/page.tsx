@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client' // Ensure this is the SSR version
 
 export default function SignupPage() {
@@ -12,6 +12,7 @@ export default function SignupPage() {
 	const [fullName, setFullName] = useState('')
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
+	const [showPassword, setShowPassword] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [isEmailSent, setIsEmailSent] = useState(false)
@@ -133,15 +134,25 @@ export default function SignupPage() {
 							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
 								<Lock className="h-5 w-5 text-slate-500" />
 							</div>
+
 							<input
-								type="password"
+								type={showPassword ? 'text' : 'password'}
 								required
 								minLength={6}
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
-								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+								className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
 								placeholder="••••••••"
 							/>
+
+							<button
+								type="button"
+								onClick={() => setShowPassword(!showPassword)}
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+								tabIndex={-1}
+							>
+								{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+							</button>
 						</div>
 					</div>
 
