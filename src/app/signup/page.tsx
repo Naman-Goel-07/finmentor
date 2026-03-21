@@ -105,7 +105,7 @@ export default function SignupPage() {
 								value={fullName}
 								onChange={(e) => setFullName(e.target.value)}
 								className="block w-full pl-14 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
-								placeholder="Naman Goel"
+								placeholder="Username"
 							/>
 						</div>
 					</div>
@@ -121,7 +121,7 @@ export default function SignupPage() {
 								required
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
-								className="block w-full pl-14 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
+								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
 								placeholder="you@example.com"
 							/>
 						</div>
@@ -139,7 +139,7 @@ export default function SignupPage() {
 								minLength={6}
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
-								className="block w-full pl-14 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-medium"
+								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
 								placeholder="••••••••"
 							/>
 						</div>
