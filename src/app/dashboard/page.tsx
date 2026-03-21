@@ -100,9 +100,6 @@ export default async function DashboardPage() {
 							<div>
 								<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Spent</p>
 								<h3 className="text-3xl font-bold text-white mb-2">₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-								<p className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 py-1 px-2.5 rounded-lg inline-block">
-									{totalSpent > 0 ? "You're tracking it! 👏" : 'Your wallet is safe. 🛡️'}
-								</p>
 							</div>
 							<div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-inner">
 								<IndianRupee size={24} />
@@ -113,9 +110,6 @@ export default async function DashboardPage() {
 							<div>
 								<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Transactions</p>
 								<h3 className="text-3xl font-bold text-white mb-2">{totalTransactions}</h3>
-								<p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 py-1 px-2.5 rounded-lg inline-block">
-									{totalTransactions > 3 ? 'Watch those coffees ☕!' : 'Keep adding records! ➕'}
-								</p>
 							</div>
 							<div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-inner">
 								<Activity size={24} />
@@ -131,9 +125,6 @@ export default async function DashboardPage() {
 								View all records{' '}
 								<ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
 							</Link>
-							<p className="text-xs text-slate-500 font-medium italic absolute bottom-3 z-10 transition-colors group-hover:text-slate-400">
-								See your full history
-							</p>
 						</div>
 					</div>
 
