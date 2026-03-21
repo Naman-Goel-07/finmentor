@@ -9,17 +9,16 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
-// ✅ INITIALIZE OUTSIDE: Ensures stability across re-renders.
 const supabase = createClient()
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [profileOpen, setProfileOpen] = useState(false)
-	const [isMounted, setIsMounted] = useState(false) // ✅ Hydration Guard
+	const [isMounted, setIsMounted] = useState(false)
 	const { user, loading, setUser } = useAuth()
 	const pathname = usePathname()
 
-	// 1. Set mounted state to true once we hit the browser
+	// 1. Hydration Guard: Set mounted state to true
 	useEffect(() => {
 		setIsMounted(true)
 	}, [])
@@ -56,24 +55,11 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 	// 3. Handle Auth Pages immediately
 	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
 
-	// 4. THE HYDRATION SHIELD
-	// If we haven't mounted in the browser yet, return the children (the server-rendered HTML).
-	// This prevents the "Warming up" screen from wiping out the dashboard
-	// before the client auth has even started.
-	if (!isMounted) {
-		return <div className="bg-[#020617] min-h-screen">{children}</div>
-	}
-
-	// 5. THE PRODUCTION LOADING CHECK
-	// Only block if we are DEFINITELY mounted, still LOADING, and have NO user data.
-	if (loading && !user) {
-		return (
-			<div className="flex bg-[#020617] h-screen w-full items-center justify-center flex-col gap-4 text-slate-300">
-				<Loader2 className="animate-spin text-emerald-500" size={48} />
-				<p className="font-semibold tracking-wide animate-pulse">Warming up your dashboard...</p>
-			</div>
-		)
-	}
+	// 4. THE PRODUCTION HYDRATION STRATEGY
+	// We return the shell and children immediately. If we haven't "mounted" yet,
+	// we are seeing the Server-Side HTML. Once we mount, if loading is true,
+	// we still show the shell. This stops the "Dashboard -> Loading -> Dashboard" flick.
+	const firstName = user?.full_name?.trim().split(' ')[0] || 'User'
 
 	const handleLogout = async () => {
 		setProfileOpen(false)
@@ -84,8 +70,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 			window.location.href = '/login'
 		}
 	}
-
-	const firstName = user?.full_name?.trim().split(' ')[0] || 'User'
 
 	return (
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
@@ -105,12 +89,15 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor AI</h1>
 						</div>
 
-						<div className="hidden md:block text-sm text-slate-400 font-medium italic">Welcome back, {firstName}! 👋</div>
+						{/* ✅ PRO TIP: Instead of a full screen loader, show a subtle sync indicator */}
+						<div className="hidden md:flex items-center gap-3">
+							{loading && <Loader2 size={14} className="animate-spin text-emerald-500 opacity-50" />}
+							<div className="text-sm text-slate-400 font-medium italic">Welcome back, {firstName}! 👋</div>
+						</div>
 
 						<div className="relative">
 							<button
 								onClick={() => setProfileOpen(!profileOpen)}
-								aria-expanded={profileOpen}
 								className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-800 transition-all cursor-pointer outline-none group"
 							>
 								<div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white border-2 border-slate-800 shadow-lg overflow-hidden shrink-0">
