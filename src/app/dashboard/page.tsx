@@ -82,11 +82,11 @@ export default async function DashboardPage() {
 					<p className="text-slate-400 max-w-lg mx-auto mb-10 font-medium text-[15px] leading-relaxed">
 						Start by adding your first expense or setting your first savings goal. FinMentor is here to help!
 					</p>
-					<div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-sm mx-auto">
-						<div className="w-full relative shadow-blue-500/10 shadow-xl rounded-xl">
+					<div className="flex flex-col sm:flex-row justify-center gap-6 w-full max-w-sm mx-auto p-4 animate-in fade-in zoom-in duration-700 delay-150">
+						<div className="w-full relative z-10 shadow-emerald-500/10 shadow-2xl rounded-xl cursor-pointer active:scale-95 transition-all">
 							<AddExpenseModal />
 						</div>
-						<div className="w-full relative shadow-amber-500/10 shadow-xl rounded-xl">
+						<div className="w-full relative z-10 shadow-amber-500/10 shadow-2xl rounded-xl cursor-pointer active:scale-95 transition-all">
 							<AddGoalModal />
 						</div>
 					</div>
