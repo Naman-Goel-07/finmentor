@@ -121,7 +121,6 @@ export default function AICoachPage() {
 				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
-					<p className="text-sm text-slate-500 font-medium italic">Running projections...</p>
 				</div>
 			)}
 
