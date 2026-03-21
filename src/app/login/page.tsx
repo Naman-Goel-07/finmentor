@@ -69,16 +69,29 @@ export default function LoginPage() {
 				)}
 
 				<form onSubmit={handleLogin} className="space-y-5">
-					{/* Email Section */}
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
-						{/* ... email input ... */}
+						<div className="relative">
+							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+								<Mail className="h-5 w-5 text-slate-500" />
+							</div>
+							<input
+								type="email"
+								required
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								className="block w-full pl-11 pr-4 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
+								placeholder="you@example.com"
+							/>
+						</div>
 					</div>
-					{/* Password Section */}
 					<div>
 						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Password</label>
 						<div className="relative">
-							{/* ... lock icon ... */}
+							<div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+								<Lock className="h-5 w-5 text-slate-500" />
+							</div>
+
 							<input
 								type={showPassword ? 'text' : 'password'}
 								required
@@ -87,16 +100,16 @@ export default function LoginPage() {
 								className="block w-full pl-11 pr-12 py-3 border border-slate-700 bg-slate-800/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-medium"
 								placeholder="••••••••"
 							/>
+
 							<button
 								type="button"
 								onClick={() => setShowPassword(!showPassword)}
-								className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500"
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+								tabIndex={-1}
 							>
 								{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
 							</button>
 						</div>
-
-						{/* Pair the Forgot Password link tightly with the password field */}
 						<div className="flex justify-end mt-2">
 							<button
 								type="button"
@@ -107,7 +120,6 @@ export default function LoginPage() {
 							</button>
 						</div>
 					</div>{' '}
-					{/* This div closes the entire Password + Forgot Link group */}
 					<button
 						type="submit"
 						disabled={loading}
