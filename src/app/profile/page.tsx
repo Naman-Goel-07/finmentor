@@ -81,35 +81,33 @@ export default function ProfilePage() {
 		setPasswordSaving(true)
 		setPasswordMessage({ type: '', text: '' })
 
-		// 🚨 THE FAIL-SAFE: If Supabase hangs for more than 4 seconds, force it to unlock.
-		const failsafeTimer = setTimeout(() => {
-			console.warn('Supabase password update is hanging. Forcing unlock...')
-			setPasswordSaving(false)
-			setPasswordMessage({ type: 'error', text: 'Network timeout. Your password may have still updated. Please refresh and try again.' })
-		}, 4000)
-
 		try {
-			console.log('Sending password update request to Supabase...')
+			console.log('Pinging secure server route...')
 
-			const { error } = await supabase.auth.updateUser({
-				password: newPassword,
+			// Send the request to your new backend route
+			const response = await fetch('/api/auth/update-password', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ newPassword }),
 			})
 
-			// If it finishes successfully, immediately kill the failsafe timer!
-			clearTimeout(failsafeTimer)
+			const data = await response.json()
 
-			if (error) throw error
+			// If the server kicks back an error status, throw it to the catch block
+			if (!response.ok) {
+				throw new Error(data.error || 'Failed to update password')
+			}
 
-			console.log('Password update successful!')
-			setPasswordMessage({ type: 'success', text: 'Password updated successfully!' })
+			console.log('Server confirmed password update!')
+			setPasswordMessage({ type: 'success', text: 'Password updated successfully! 🎉' })
 			setNewPassword('')
 			setConfirmPassword('')
 		} catch (error: any) {
-			clearTimeout(failsafeTimer)
 			console.error('Password Update Error:', error.message)
 			setPasswordMessage({ type: 'error', text: error.message || 'Failed to update password.' })
 		} finally {
-			// Ensure the button unlocks no matter what
 			setPasswordSaving(false)
 		}
 	}
@@ -143,7 +141,6 @@ export default function ProfilePage() {
 						<User size={18} /> Profile Details
 					</button>
 
-					{/* ✅ Unlocked Security Button */}
 					<button
 						onClick={() => setActiveTab('security')}
 						className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl transition-all ${
