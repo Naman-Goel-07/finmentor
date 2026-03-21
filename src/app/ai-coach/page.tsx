@@ -85,63 +85,68 @@ export default function AICoachPage() {
 				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini Flash.</p>
 			</header>
 
+			{/* Dark Mode Initial Action Card */}
 			{!advice && !loading && (
-				<div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative">
+				<div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative">
 					<div className="p-8 md:p-12 text-center relative z-10">
-						<div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3">
+						<div className="w-20 h-20 bg-indigo-900/50 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3 border border-indigo-500/20">
 							<Zap size={40} fill="currentColor" />
 						</div>
-						<h2 className="text-3xl font-bold text-gray-800 mb-4">Stop Guessing, Start Growing</h2>
+						<h2 className="text-3xl font-bold text-white mb-4">Stop Guessing, Start Growing</h2>
 
 						<div className="mb-8 max-w-xs mx-auto">
-							<label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-center">Monthly Budget (₹)</label>
+							<label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">Monthly Budget (₹)</label>
 							<input
 								type="number"
 								value={monthlyBudget}
 								onChange={(e) => setMonthlyBudget(e.target.value)}
-								className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-gray-900 text-xl"
+								className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold text-white text-xl"
 							/>
 						</div>
 
-						<p className="text-gray-500 max-w-md mx-auto mb-8 text-lg">
+						<p className="text-slate-400 max-w-md mx-auto mb-8 text-lg">
 							FinMentor AI will audit your spending vs. your goals to find your hidden wealth.
 						</p>
 
 						<button
 							onClick={handleAnalyze}
-							className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-gray-900 rounded-xl hover:bg-black w-full md:w-auto cursor-pointer"
+							className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-slate-900 transition-all duration-200 bg-white rounded-xl hover:bg-indigo-50 w-full md:w-auto cursor-pointer"
 						>
 							Analyze My Finances
 							<ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
 						</button>
 					</div>
-					<div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-amber-100 rounded-full opacity-20 blur-3xl"></div>
+					{/* Subtle background glow */}
+					<div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
 				</div>
 			)}
 
+			{/* Loading State - Text is light to contrast dark mode */}
 			{loading && (
 				<div className="flex flex-col items-center justify-center py-20">
 					<div className="relative">
-						<Loader2 className="animate-spin text-indigo-600 mb-4" size={64} />
+						<Loader2 className="animate-spin text-indigo-400 mb-4" size={64} />
 						<Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-bounce" size={24} />
 					</div>
-					<p className="text-xl font-medium text-gray-600">{LOADING_MESSAGES[loadingMsgIndex]}</p>
+					<p className="text-xl font-medium text-slate-200">{LOADING_MESSAGES[loadingMsgIndex]}</p>
+					<p className="text-sm text-slate-500 mt-2 italic">Checking deadlines and spending leaks...</p>
 				</div>
 			)}
 
+			{/* Error State */}
 			{error && (
-				<div className="bg-red-50 border-2 border-red-100 rounded-2xl p-6 mb-8 flex items-start">
-					<AlertCircle className="w-6 h-6 mr-4 text-red-600 mt-1 shrink-0" />
+				<div className="bg-red-900/20 border-2 border-red-900/30 rounded-2xl p-6 mb-8 flex items-start">
+					<AlertCircle className="w-6 h-6 mr-4 text-red-500 mt-1 shrink-0" />
 					<div>
-						<h3 className="font-bold text-red-900">Coach is stuck!</h3>
-						<p className="text-red-700">{error}</p>
+						<h3 className="font-bold text-red-200">Coach is stuck!</h3>
+						<p className="text-red-400">{error}</p>
 					</div>
 				</div>
 			)}
 
 			{advice && (
 				<div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-					{/* Dark Stats Grid */}
+					{/* Dark Stats Grid - All matching now */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 						<div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
 							<TrendingDown className="text-indigo-400 mb-2" size={24} />
@@ -153,15 +158,15 @@ export default function AICoachPage() {
 							<p className="text-sm text-slate-400 font-bold uppercase tracking-tight">Budget Limit</p>
 							<p className="text-2xl font-bold text-white">₹{monthlyBudget}</p>
 						</div>
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-							<Sparkles className="text-green-500 mb-2" size={24} />
-							<p className="text-sm text-gray-500 font-bold uppercase tracking-tight">Status</p>
-							<p className="text-2xl font-bold italic text-green-600">Complete</p>
+						<div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+							<Sparkles className="text-green-400 mb-2" size={24} />
+							<p className="text-sm text-slate-400 font-bold uppercase tracking-tight">Status</p>
+							<p className="text-2xl font-bold italic text-green-400">Complete</p>
 						</div>
 					</div>
 
 					{/* Dark AI Advice Card */}
-					<div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-xl shadow-slate-950/20 relative w-full overflow-hidden">
+					<div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-xl relative w-full overflow-hidden">
 						<div className="prose prose-slate prose-invert max-w-none w-full text-left">
 							<ReactMarkdown
 								components={{
