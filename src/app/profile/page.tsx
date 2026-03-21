@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client' // Your new split client
+import { createClient } from '@/lib/supabase/client'
 import { User, Mail, Shield, Bell, Save, Loader2, Info } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -10,7 +10,6 @@ export default function ProfilePage() {
 	const [saving, setSaving] = useState(false)
 	const [message, setMessage] = useState({ type: '', text: '' })
 
-	// Initialize the Supabase instance
 	const supabase = createClient()
 
 	const [formData, setFormData] = useState({
@@ -18,7 +17,6 @@ export default function ProfilePage() {
 		email: '',
 	})
 
-	// Sync form data once user is loaded from AuthContext
 	useEffect(() => {
 		if (user) {
 			setFormData({
@@ -36,28 +34,21 @@ export default function ProfilePage() {
 		setMessage({ type: '', text: '' })
 
 		try {
-			// Update the public profile
-			const { error } = await supabase.from('profiles').upsert({
-				id: user.id,
-				full_name: formData.full_name,
-				email: formData.email,
-				updated_at: new Date().toISOString(),
-			})
+			// Use .update() instead of .upsert(), and ONLY send full_name
+			const { error } = await supabase
+				.from('profiles')
+				.update({
+					full_name: formData.full_name,
+					updated_at: new Date().toISOString(),
+				})
+				.eq('id', user.id)
 
 			if (error) throw error
 
 			setMessage({ type: 'success', text: 'Changes saved!' })
 
-			// Sync the global AuthContext state so the Sidebar updates instantly
-			setUser((prev) =>
-				prev
-					? {
-							...prev,
-							full_name: formData.full_name,
-							email: formData.email,
-						}
-					: prev,
-			)
+			// Sync the context so the Sidebar updates instantly
+			setUser((prev) => (prev ? { ...prev, full_name: formData.full_name } : prev))
 		} catch (error: any) {
 			console.error('Supabase Error:', error.message)
 			setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
@@ -143,11 +134,10 @@ export default function ProfilePage() {
 										<Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
 										<input
 											type="email"
-											required
+											disabled // Locks the input field
 											value={formData.email}
-											onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-											className="w-full pl-12 pr-5 py-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all font-medium outline-none"
-											placeholder="demo@example.com"
+											className="w-full pl-12 pr-5 py-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl text-slate-500 cursor-not-allowed opacity-70 transition-all font-medium outline-none"
+											title="Your email is tied to your login identity and cannot be changed here."
 										/>
 									</div>
 								</div>
@@ -157,9 +147,8 @@ export default function ProfilePage() {
 							<div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800/60 flex gap-3 items-start">
 								<Info className="text-emerald-500 shrink-0 mt-0.5" size={16} />
 								<p className="text-[11px] leading-relaxed text-slate-400 font-medium">
-									Note: Updating your email here changes your contact information in the{' '}
-									<span className="text-emerald-400">FinMentor AI</span> database. To change your login credentials, please visit the Security
-									tab (Coming Soon).
+									Note: Your email address is linked directly to your secure authentication provider. To change your login credentials or
+									email, please visit the <span className="text-emerald-400">Security</span> tab (Coming Soon).
 								</p>
 							</div>
 						</div>
@@ -167,7 +156,7 @@ export default function ProfilePage() {
 						<div className="p-6 bg-slate-950/50 border-t border-slate-800/60 flex justify-end">
 							<button
 								type="submit"
-								disabled={saving}
+								disabled={saving || formData.full_name === user?.full_name}
 								className="w-full md:w-auto min-h-[44px] px-10 py-2 font-bold text-slate-900 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-95 disabled:opacity-50"
 							>
 								{saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}

@@ -11,38 +11,28 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 	const supabase = createClient()
 
 	const handleDelete = async () => {
-		// 1. Check if the ID even exists
-		console.log('🗑️ Attempting to delete Expense ID:', id)
-		if (!id) {
-			alert('Component Error: No ID was passed to the delete button.')
-			return
-		}
+		if (!id) return // Silent exit if something went wrong passing the ID
 
 		if (!confirm('Delete this record? It will be removed from your AI coaching history.')) return
 
 		setIsDeleting(true)
 
-		// 2. Add .select() so Supabase returns the deleted data
-		const { data, error } = await supabase.from('expenses').delete().eq('id', id).select() // ✅ THE FIX: Tell me what you deleted
+		try {
+			const { error } = await supabase.from('expenses').delete().eq('id', id)
 
-		if (error) {
-			console.error('❌ Delete Error:', error.message)
-			alert(`Failed to delete: ${error.message}`)
+			if (error) {
+				console.error('Delete Error:', error.message)
+				alert('Failed to delete record. Please try again.')
+				return
+			}
+
+			// Successfully deleted, refresh the Server Component data
+			router.refresh()
+		} catch (error) {
+			console.error('Unexpected Error:', error)
+		} finally {
 			setIsDeleting(false)
-			return
 		}
-
-		// 3. The "Silent Failure" Check
-		if (!data || data.length === 0) {
-			console.warn('⚠️ Query succeeded, but NO ROWS were deleted!')
-			alert('Could not delete. Check your RLS policies or if you own this row.')
-			setIsDeleting(false)
-			return
-		}
-
-		console.log('✅ Successfully deleted row:', data)
-		setIsDeleting(false) // Reset state so the button returns to normal
-		router.refresh()
 	}
 
 	return (

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '@/context/AuthContext'
-import LogoutButton from '@/components/LogoutButton' // ✅ Import your new single-source-of-truth button
+import LogoutButton from './LogoutButton' // ✅ Import your new single-source-of-truth button
 
 const navItems = [
 	{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
