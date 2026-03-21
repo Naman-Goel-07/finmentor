@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { clearCache } from '@/app/actions'
 
 export default function AddExpenseModal() {
 	const [isOpen, setIsOpen] = useState(false)
@@ -38,6 +39,7 @@ export default function AddExpenseModal() {
 			setCategory('Food')
 			setNote('')
 			setDate(new Date().toISOString().split('T')[0])
+			await clearCache('/expenses')
 			router.refresh()
 		} catch (err: any) {
 			setError(err.message)

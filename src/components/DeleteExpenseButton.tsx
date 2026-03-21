@@ -4,6 +4,7 @@ import { Trash2, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { clearCache } from '@/app/actions'
 
 export default function DeleteExpenseButton({ id }: { id: string }) {
 	const router = useRouter()
@@ -27,6 +28,7 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 			}
 
 			// Successfully deleted, refresh the page data
+			await clearCache('/expenses')
 			router.refresh()
 		} catch (error) {
 			console.error('Unexpected Error:', error)

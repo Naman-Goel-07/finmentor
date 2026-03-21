@@ -4,6 +4,7 @@ import { X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { clearCache } from '@/app/actions'
 
 interface DeleteProps {
 	id: string
@@ -26,12 +27,12 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 			if (error) throw error
 
 			// 1. Tell Next.js to re-fetch server data
+			await clearCache('/goals')
 			router.refresh()
 
 			// 2. Trigger the local update (Graph/Slider) only after DB success
 			if (onSuccess) onSuccess()
 		} catch (err: any) {
-			console.error('Delete failed:', err.message)
 			alert('Could not delete saving.')
 			setIsDeleting(false)
 		}
