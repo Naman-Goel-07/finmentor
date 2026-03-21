@@ -2,7 +2,7 @@
 
 import { Trash2, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'navigation'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function DeleteExpenseButton({ id }: { id: string }) {
