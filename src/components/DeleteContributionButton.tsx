@@ -1,9 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 import { clearCache } from '@/app/actions'
 
 interface DeleteProps {
@@ -17,7 +17,12 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 	const supabase = createClient()
 
 	const handleDelete = async (e: React.MouseEvent) => {
-		e.stopPropagation() // Prevents GoalCard from toggling
+		e.stopPropagation()
+
+		// Added a safety check to prevent accidental deletions
+		if (!window.confirm('Are you sure you want to remove this contribution?')) {
+			return
+		}
 
 		setIsDeleting(true)
 
@@ -26,14 +31,16 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 
 			if (error) throw error
 
-			// 1. Tell Next.js to re-fetch server data
+			// 1. Clear the cache so the server-side fetch in goals/page.tsx gets fresh data
 			await clearCache('/goals')
+
+			// 2. Refresh the UI so the GoalCard re-calculates the sum without this row
 			router.refresh()
 
-			// 2. Trigger the local update (Graph/Slider) only after DB success
 			if (onSuccess) onSuccess()
 		} catch (err: any) {
-			alert('Could not delete saving.')
+			// Updated terminology to "contribution"
+			alert('Could not delete contribution.')
 			setIsDeleting(false)
 		}
 	}
@@ -45,7 +52,7 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 			className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover/item:opacity-100 disabled:opacity-100 cursor-pointer"
 			title="Delete contribution"
 		>
-			{isDeleting ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <X size={14} />}
+			{isDeleting ? <Loader2 size={14} className="animate-spin text-red-500" /> : <X size={14} />}
 		</button>
 	)
 }
