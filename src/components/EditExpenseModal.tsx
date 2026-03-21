@@ -35,7 +35,7 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 
 		try {
 			const res = await fetch('/api/edit-expense', {
-				method: 'PATCH', // Or POST depending on your API route
+				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ id: expense.id, amount, category, note, date }),
 			})
@@ -55,10 +55,10 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 
 	return (
 		<>
-			{/* Trigger Button - usually placed in the table row */}
+			{/* Trigger Button - Inline Table Style */}
 			<button
 				onClick={() => setIsOpen(true)}
-				className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+				className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
 				title="Edit Expense"
 			>
 				<Pencil size={16} />
@@ -78,7 +78,15 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 						<form onSubmit={handleUpdate} className="space-y-5">
 							<div>
 								<label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Amount</label>
-								<input type="number" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClasses} />
+								<input
+									type="number"
+									step="0.01"
+									required
+									value={amount}
+									onChange={(e) => setAmount(e.target.value)}
+									className={inputClasses}
+									placeholder="₹0.00"
+								/>
 							</div>
 
 							<div>
@@ -100,21 +108,27 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 
 							<div>
 								<label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Note</label>
-								<input type="text" value={note} onChange={(e) => setNote(e.target.value)} className={inputClasses} />
+								<input
+									type="text"
+									value={note}
+									onChange={(e) => setNote(e.target.value)}
+									className={inputClasses}
+									placeholder="e.g. Starbucks coffee"
+								/>
 							</div>
 
 							<div className="flex flex-col md:flex-row justify-end gap-3 pt-4">
 								<button
 									type="button"
 									onClick={() => setIsOpen(false)}
-									className="w-full md:w-auto min-h-[44px] px-6 py-2 font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+									className="w-full md:w-auto min-h-[44px] px-6 py-2 font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center"
 								>
 									Cancel
 								</button>
 								<button
 									type="submit"
 									disabled={loading}
-									className="w-full md:w-auto min-h-[44px] px-8 py-2 font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center"
+									className="w-full md:w-auto min-h-[44px] px-8 py-2 font-bold bg-slate-900 hover:bg-black text-white rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center"
 								>
 									{loading ? 'Saving...' : 'Update Expense'}
 								</button>
