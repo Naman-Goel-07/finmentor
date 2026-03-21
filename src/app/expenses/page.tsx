@@ -2,6 +2,7 @@ import { AlertCircle, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AddExpenseModal from '@/components/AddExpenseModal'
 import DeleteExpenseButton from '@/components/DeleteExpenseButton'
+import EditExpenseModal from '@/components/EditExpenseModal'
 
 export const revalidate = 60
 
@@ -69,7 +70,7 @@ export default async function ExpensesPage() {
 			{/* TABLE SECTION */}
 			<section
 				className={`bg-slate-900/50 rounded-3xl backdrop-blur-sm transition-all duration-300 
-					${isEmptyDatabase ? 'border-2 border-dashed border-slate-700/60' : 'border border-solid border-slate-800/60 shadow-sm'}`}
+                    ${isEmptyDatabase ? 'border-2 border-dashed border-slate-700/60' : 'border border-solid border-slate-800/60 shadow-sm'}`}
 			>
 				{isEmptyDatabase ? (
 					<div className="flex flex-col items-center justify-center p-20 text-center relative group">
@@ -94,7 +95,7 @@ export default async function ExpensesPage() {
 									<th className="py-5 px-8">Category</th>
 									<th className="py-5 px-8">Note</th>
 									<th className="py-5 px-8 text-right">Amount</th>
-									<th className="py-5 px-6 w-16 text-center">Actions</th>
+									<th className="py-5 px-6 w-32 text-center">Actions</th> {/* Widened for 2 buttons */}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-slate-800/40">
@@ -113,7 +114,10 @@ export default async function ExpensesPage() {
 											₹{expense.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
 										</td>
 										<td className="py-5 px-6 text-center">
-											<DeleteExpenseButton id={expense.id} />
+											<div className="flex items-center justify-center gap-1">
+												<EditExpenseModal expense={expense} />
+												<DeleteExpenseButton id={expense.id} />
+											</div>
 										</td>
 									</tr>
 								))}
