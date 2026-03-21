@@ -13,19 +13,27 @@ export default function LogoutButton({ isCollapsed }: LogoutButtonProps) {
 	const [loading, setLoading] = useState(false)
 	const supabase = createClient()
 
-	const handleLogout = async () => {
-		setLoading(true)
-		try {
-			// 1. Clear Supabase Client State
-			await supabase.auth.signOut()
+	const handleLogout = async (e: React.MouseEvent) => {
+		e.preventDefault() // Stops any weird Sidebar click events from interfering
+		if (loading) return // Prevents double-clicking
 
-			// 2. Clear the Server-Side Cookie with a timeout safety
-			await Promise.race([fetch('/api/auth/logout', { method: 'POST' }), new Promise((resolve) => setTimeout(resolve, 1000))])
+		setLoading(true)
+
+		// THE FAIL-SAFE: No matter what happens, redirect after 1.5 seconds.
+		const forceRedirect = setTimeout(() => {
+			console.warn('Logout took too long, forcing redirect...')
+			window.location.href = '/login'
+		}, 1500)
+
+		try {
+			// Promise.allSettled runs both tasks simultaneously.
+			// Even if one fails or hangs, it won't crash the other.
+			await Promise.allSettled([supabase.auth.signOut(), fetch('/api/auth/logout', { method: 'POST' })])
 		} catch (error) {
-			console.error('Logout failed:', error)
+			console.error('Logout error:', error)
 		} finally {
-			// 3. THE RESET: Hard reload to /login
-			// Bypasses React state entirely to avoid hydration/loading locks
+			// If the promises finish quickly, clear the timer and redirect instantly
+			clearTimeout(forceRedirect)
 			window.location.href = '/login'
 		}
 	}
@@ -50,7 +58,6 @@ export default function LogoutButton({ isCollapsed }: LogoutButtonProps) {
 
 			{!isCollapsed && <span className="tracking-wide whitespace-nowrap">{loading ? 'Signing out...' : 'Logout'}</span>}
 
-			{/* Tooltip for Collapsed State */}
 			{isCollapsed && (
 				<div className="hidden md:block absolute left-20 bg-red-900 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform -translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[100] border border-red-700 shadow-2xl">
 					Logout
