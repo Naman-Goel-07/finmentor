@@ -27,16 +27,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<UserState>(null)
 	const [loading, setLoading] = useState(true)
 
-	/**
-	 * Fetches additional profile data.
-	 * In production, we treat this as a non-blocking enhancement.
-	 */
 	const fetchProfileData = useCallback(async (userId: string, email: string) => {
 		try {
 			const { data, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single()
 
+			// PGRST116 means the row doesn't exist yet
 			if (error && error.code !== 'PGRST116') {
-				// PGRST116 is simply "no rows found", which is handled by the default return
 				console.error('[AuthContext] Profile Fetch Error:', error.message)
 			}
 
@@ -60,22 +56,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				} = await supabase.auth.getSession()
 
 				if (session?.user && mounted) {
-					// 1. Set the user immediately using session data so the UI unlocks
+					// 🚀 STEP 1: Immediate Unlock
+					// We have a session, so the user is "logged in". Stop the loader now.
 					setUser({
 						id: session.user.id,
 						email: session.user.email || '',
-						full_name: 'FinMentor User', // Placeholder while we fetch the real name
+						full_name: 'FinMentor User',
 					})
 					setLoading(false)
 
-					// 2. Fetch the detailed profile in the background
+					// 🚀 STEP 2: Background Hydration
+					// Fetch the name silently while the user interacts with the dashboard.
 					const fullProfile = await fetchProfileData(session.user.id, session.user.email || '')
 					if (mounted) setUser(fullProfile)
 				} else {
 					if (mounted) setLoading(false)
 				}
 			} catch (error) {
-				console.error('[AuthContext] Initialization Critical Failure:', error)
 				if (mounted) setLoading(false)
 			}
 		}
@@ -91,22 +88,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					setLoading(false)
 				}
 			} else if (session?.user && mounted) {
-				// Handle SIGNED_IN or TOKEN_REFRESHED
+				// ✅ KEY FIX: Stop the loading icon immediately when a session is found
+				setLoading(false)
+
 				const userData = await fetchProfileData(session.user.id, session.user.email || '')
-				if (mounted) {
-					setUser(userData)
-					setLoading(false)
-				}
+				if (mounted) setUser(userData)
 			}
 		})
 
 		return () => {
-			mounted = true
+			mounted = false // ✅ FIX: Changed from true to false
 			subscription.unsubscribe()
 		}
 	}, [fetchProfileData])
 
-	// Memoizing the value prevents unnecessary re-renders of the component tree
 	const contextValue = useMemo(() => ({ user, loading, setUser }), [user, loading])
 
 	return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
