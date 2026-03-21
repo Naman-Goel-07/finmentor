@@ -30,19 +30,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	const getProfile = useCallback(async (userId: string, email: string) => {
 		console.log('🔍 [AuthContext] Fetching profile for:', userId)
-		try {
-			const { data: profile, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single()
 
-			if (error) console.warn('⚠️ [AuthContext] Profile fetch error:', error.message)
+		// Create a promise that rejects after 2 seconds
+		const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+
+		try {
+			// Race the Supabase query against our timeout
+			const profileQuery = supabase.from('profiles').select('full_name').eq('id', userId).single()
+
+			const result = (await Promise.race([profileQuery, timeout])) as any
 
 			return {
 				id: userId,
 				email: email || '',
-				full_name: profile?.full_name || 'FinMentor User',
+				full_name: result.data?.full_name || 'FinMentor User',
 			}
 		} catch (err) {
-			console.error('❌ [AuthContext] Profile fetch exception:', err)
-			return { id: userId, email: email || '', full_name: 'FinMentor User' }
+			console.warn('⚠️ [AuthContext] Profile fetch failed or timed out. Using default.')
+			return {
+				id: userId,
+				email: email || '',
+				full_name: 'FinMentor User',
+			}
 		}
 	}, [])
 
