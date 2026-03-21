@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 
 type UserState = {
 	id: string
@@ -25,6 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<UserState>(null)
 	const [loading, setLoading] = useState(true)
 
+	const supabase = createClient()
+	
 	// Helper to fetch profile data from our custom 'profiles' table
 	const getProfile = useCallback(async (userId: string, email: string) => {
 		const { data: profile, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single()

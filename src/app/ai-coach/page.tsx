@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight } from 'lucide-react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import ReactMarkdown from 'react-markdown'
 
 export default function AICoachPage() {
@@ -10,6 +10,8 @@ export default function AICoachPage() {
 	const [advice, setAdvice] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [expenseCount, setExpenseCount] = useState(0)
+
+	const supabase = createClient()
 
 	const handleAnalyze = async () => {
 		setLoading(true)
