@@ -9,9 +9,11 @@ const client = new GoogleGenAI({
 
 export async function POST(req: Request) {
 	try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+		const supabase = await createClient()
+		const {
+			data: { user },
+		} = await supabase.auth.getUser()
+		if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
 		const { income, expenses } = await req.json()
 
@@ -51,18 +53,18 @@ export async function POST(req: Request) {
 			return NextResponse.json({
 				advice: `# 🚨 Coach is in High-Demand!
 
-						## Quick Roast
-						Your spending is moving faster than 5G! 📉 
+## Quick Roast
+Your spending is moving faster than 5G! 📉 
 
-						## Instant Insights
-						* **Overspending:** Looks like Food and Subscriptions are your wallet's biggest enemies.
-						* **Small Win:** Try the "No-Spend Weekend" challenge to save some money.
+## Instant Insights
+* **Overspending:** Looks like Food and Subscriptions are your wallet's biggest enemies.
+* **Small Win:** Try the "No-Spend Weekend" challenge to save some money.
 
-						## SIP Fact
-						**Saving just ₹1,000/month at 12% return gets you ₹13,200 in a year.**
+## SIP Fact
+**Saving just ₹1,000/month at 12% return gets you ₹13,200 in a year.**
 
-						---
-						*Note: Gemini is currently at capacity, but your FinMentor never sleeps!*`,
+---
+*Note: Gemini is currently at capacity, but your FinMentor never sleeps!*`,
 			})
 		}
 
