@@ -61,7 +61,7 @@ export default function EditGoalModal({ goal }: EditGoalProps) {
 			{/* UPDATED TRIGGER: Now matches the Archive/Delete button styles in GoalCard */}
 			<button
 				onClick={() => setIsOpen(true)}
-				className="flex-1 py-2 rounded-lg text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 flex justify-center items-center gap-2 transition-all active:scale-95 cursor-pointer"
+				className="w-full h-full py-2 rounded-lg text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 flex justify-center items-center gap-2 transition-all active:scale-95 cursor-pointer"
 			>
 				<Pencil size={14} />
 				Edit

@@ -166,17 +166,13 @@ export default function GoalCard({ goal }: { goal: any }) {
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
-						{/* 2. UPDATED ACTION ROW WITH EDIT BUTTON */}
+						{/* 2. UPDATED ACTION ROW: Archive → Edit → Delete */}
 						<div className="flex gap-2 mb-6 mt-6">
-							{/* NEW EDIT BUTTON */}
-							<div className="flex-1">
-								<EditGoalModal goal={goal} />
-							</div>
-
+							{/* 1. ARCHIVE / RESTORE */}
 							<button
 								onClick={() => handleGoalAction('archive')}
 								disabled={loadingAction === 'archive'}
-								className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2 disabled:opacity-50"
+								className="flex-1 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
 							>
 								{loadingAction === 'archive' ? (
 									<Loader2 size={14} className="animate-spin" />
@@ -190,10 +186,17 @@ export default function GoalCard({ goal }: { goal: any }) {
 									</>
 								)}
 							</button>
+
+							{/* 2. EDIT */}
+							<div className="flex-1 h-9">
+								<EditGoalModal goal={goal} />
+							</div>
+
+							{/* 3. DELETE */}
 							<button
 								onClick={() => handleGoalAction('delete')}
 								disabled={loadingAction === 'delete'}
-								className="flex-1 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 flex justify-center items-center gap-2 disabled:opacity-50"
+								className="flex-1 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 flex justify-center items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
 							>
 								{loadingAction === 'delete' ? (
 									<Loader2 size={14} className="animate-spin" />
