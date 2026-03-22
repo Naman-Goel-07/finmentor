@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -18,12 +18,10 @@ const LOADING_MESSAGES = [
 const DAILY_LIMIT = 10
 
 export default function AICoachPage() {
-	const router = useRouter()
 	const pathname = usePathname()
 	const supabase = createClient()
-	const isInitialMount = useRef(true)
 
-	// NEW: Reference for the PDF Capture
+	// Reference for the PDF Capture
 	const reportRef = useRef<HTMLDivElement>(null)
 
 	// Auth & Identity States
@@ -102,29 +100,34 @@ export default function AICoachPage() {
 		syncSession()
 	}, [supabase, fetchUsage])
 
+	// FIX: Removed router.refresh() to prevent the "Syncing AI Protocol" infinite hang
 	useEffect(() => {
 		if (!authLoading && currentUserId) {
 			fetchUsage(currentUserId)
-			if (!isInitialMount.current) {
-				router.refresh()
-			}
-			isInitialMount.current = false
 		}
-	}, [pathname, fetchUsage, router, currentUserId, authLoading])
+	}, [pathname, fetchUsage, currentUserId, authLoading])
 
-	// NEW: PDF Download Handler
+	// PDF Download Handler
 	const handleDownloadPDF = async () => {
 		if (!reportRef.current) return
 		setIsDownloading(true)
 
 		try {
+			// FIX: html2canvas breaks if the user is scrolled down. We scroll to top temporarily.
+			const scrollY = window.scrollY
+			window.scrollTo(0, 0)
+
 			const element = reportRef.current
 			const canvas = await html2canvas(element, {
 				scale: 2, // High resolution
 				backgroundColor: '#0f172a', // Slate-900 to match theme
 				useCORS: true,
+				allowTaint: true, // FIX: Allows Lucide SVGs to render without breaking
 				logging: false,
 			})
+
+			// Restore user's scroll position
+			window.scrollTo(0, scrollY)
 
 			const imgData = canvas.toDataURL('image/png')
 			const pdf = new jsPDF({
@@ -137,6 +140,7 @@ export default function AICoachPage() {
 			pdf.save(`FinMentor-Audit-${new Date().toISOString().split('T')[0]}.pdf`)
 		} catch (err) {
 			console.error('PDF Export failed:', err)
+			alert('Failed to save PDF. Please try again.')
 		} finally {
 			setIsDownloading(false)
 		}
@@ -189,6 +193,45 @@ export default function AICoachPage() {
 		localStorage.removeItem(`finmentor_advice_${currentUserId}`)
 	}
 
+	// Countdown Timer
+	useEffect(() => {
+		if (!nextResetTime || usageCount < DAILY_LIMIT) {
+			setCountdown('')
+			return
+		}
+
+		const timer = setInterval(() => {
+			const resetDate = new Date(nextResetTime)
+			resetDate.setHours(resetDate.getHours() + 24)
+			const now = new Date()
+			const diff = resetDate.getTime() - now.getTime()
+
+			if (diff <= 0) {
+				setCountdown('')
+				if (currentUserId) fetchUsage(currentUserId)
+				clearInterval(timer)
+			} else {
+				const hours = Math.floor(diff / (1000 * 60 * 60))
+				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+				const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+				setCountdown(`${hours}h ${minutes}m ${seconds}s`)
+			}
+		}, 1000)
+
+		return () => clearInterval(timer)
+	}, [nextResetTime, usageCount, fetchUsage, currentUserId])
+
+	// Loading Message Cycler
+	useEffect(() => {
+		let interval: NodeJS.Timeout
+		if (loading) {
+			interval = setInterval(() => {
+				setLoadingMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length)
+			}, 3000)
+		}
+		return () => clearInterval(interval)
+	}, [loading])
+
 	if (authLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -225,7 +268,7 @@ export default function AICoachPage() {
 					</div>
 					{countdown && (
 						<div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold animate-pulse">
-							<Clock size={10} /> {countdown}
+							<Clock size={10} /> Next slot in: {countdown}
 						</div>
 					)}
 				</div>
@@ -233,22 +276,35 @@ export default function AICoachPage() {
 
 			{!advice && !loading && (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm relative group transition-all duration-500 hover:border-slate-600/80">
+					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 					<Zap className="text-purple-400 mx-auto mb-6 transition-transform group-hover:scale-110" size={48} />
 					<h2 className="text-3xl font-extrabold text-white mb-6">Ready for an intervention? 🚀</h2>
-					<input
-						type="number"
-						value={monthlyBudget}
-						onChange={(e) => setMonthlyBudget(e.target.value)}
-						className="w-full max-w-[200px] px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl text-center font-bold text-white text-xl mb-6 focus:border-purple-500 outline-none"
-					/>
+					<div className="mb-8 max-w-xs mx-auto">
+						<label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Budget (₹)</label>
+						<input
+							type="number"
+							value={monthlyBudget}
+							onChange={(e) => setMonthlyBudget(e.target.value)}
+							disabled={usageCount >= DAILY_LIMIT}
+							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all disabled:opacity-30"
+						/>
+					</div>
 					<button
 						onClick={handleAnalyze}
 						disabled={usageCount >= DAILY_LIMIT}
 						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 active:scale-95 disabled:opacity-30"
 					>
-						{usageCount >= DAILY_LIMIT ? `Locked: ${countdown}` : 'Analyze My Finances'} <ChevronRight size={20} />
+						{usageCount >= DAILY_LIMIT ? `Locked: ${countdown}` : 'Analyze My Finances'}
+						<ChevronRight size={20} />
 					</button>
 				</section>
+			)}
+
+			{loading && (
+				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
+					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
+					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
+				</div>
 			)}
 
 			{advice && !loading && (
@@ -301,7 +357,7 @@ export default function AICoachPage() {
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 transition-transform group-hover:scale-110`}
 								>
 									<stat.icon size={24} />
 								</div>
@@ -345,10 +401,10 @@ export default function AICoachPage() {
 				</div>
 			)}
 
-			{loading && (
-				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
-					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
-					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
+			{error && (
+				<div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 flex items-center gap-4 animate-in zoom-in">
+					<AlertCircle size={24} className="shrink-0" />
+					<p className="text-xs font-bold">{error}</p>
 				</div>
 			)}
 		</div>
