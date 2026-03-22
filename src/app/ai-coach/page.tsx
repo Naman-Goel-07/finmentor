@@ -39,8 +39,10 @@ export default function AICoachPage() {
 	// REVALIDATION HELPER: Forces a fresh pull from the database
 	const syncUsageFromDB = async (userId: string) => {
 		try {
-			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+			// 1. Force the client to recognize the session before the query
+			await supabase.auth.getSession()
 
+			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 			// Use the optimized 'head: true' approach like your backend
 			const {
 				count,
