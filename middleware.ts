@@ -1,41 +1,29 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-	let response = NextResponse.next({
-		request: {
-			headers: request.headers,
-		},
+	let supabaseResponse = NextResponse.next({
+		request,
 	})
 
-	// 1. Initialize the Supabase client specifically for Middleware
+	// 1. Initialize modern Supabase SSR Client
 	const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
 		cookies: {
-			get(name: string) {
-				return request.cookies.get(name)?.value
+			getAll() {
+				return request.cookies.getAll()
 			},
-			set(name: string, value: string, options: CookieOptions) {
-				request.cookies.set({ name, value, ...options })
-				response = NextResponse.next({
-					request: {
-						headers: request.headers,
-					},
+			setAll(cookiesToSet) {
+				cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+				supabaseResponse = NextResponse.next({
+					request,
 				})
-				response.cookies.set({ name, value, ...options })
-			},
-			remove(name: string, options: CookieOptions) {
-				request.cookies.set({ name, value: '', ...options })
-				response = NextResponse.next({
-					request: {
-						headers: request.headers,
-					},
-				})
-				response.cookies.set({ name, value: '', ...options })
+				cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
 			},
 		},
 	})
 
-	// 2. Get the session (this also refreshes it if it's expired)
+	// IMPORTANT: Do not run any extra logic between createServerClient and getUser!
+	// 2. Get the session (this securely refreshes it if it's expired)
 	const {
 		data: { user },
 	} = await supabase.auth.getUser()
@@ -43,16 +31,34 @@ export async function middleware(request: NextRequest) {
 	const isPublicRoute =
 		request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname.startsWith('/auth/callback')
 
-	// 3. Redirection Logic
+	// 3. Redirection Logic (With Cookie Preservation!)
 	if (!user && !isPublicRoute) {
-		return NextResponse.redirect(new URL('/login', request.url))
+		const url = request.nextUrl.clone()
+		url.pathname = '/login'
+		const redirectResponse = NextResponse.redirect(url)
+
+		// CRITICAL: Forward the refreshed cookies to the redirect response
+		supabaseResponse.cookies.getAll().forEach((cookie) => {
+			redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+		})
+
+		return redirectResponse
 	}
 
 	if (user && isPublicRoute) {
-		return NextResponse.redirect(new URL('/dashboard', request.url))
+		const url = request.nextUrl.clone()
+		url.pathname = '/dashboard'
+		const redirectResponse = NextResponse.redirect(url)
+
+		// CRITICAL: Forward the refreshed cookies to the redirect response
+		supabaseResponse.cookies.getAll().forEach((cookie) => {
+			redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+		})
+
+		return redirectResponse
 	}
 
-	return response
+	return supabaseResponse
 }
 
 export const config = {
