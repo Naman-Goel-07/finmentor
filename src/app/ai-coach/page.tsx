@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ReactMarkdown from 'react-markdown'
 
@@ -15,6 +15,8 @@ const LOADING_MESSAGES = [
 	'Analyzing patterns... stay calm.',
 ]
 
+const DAILY_LIMIT = 10
+
 export default function AICoachPage() {
 	const [loading, setLoading] = useState(false)
 	const [advice, setAdvice] = useState<string | null>(null)
@@ -23,7 +25,78 @@ export default function AICoachPage() {
 	const [monthlyBudget, setMonthlyBudget] = useState('10000')
 	const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
 
+	// Usage & Countdown States
+	const [usageCount, setUsageCount] = useState(0)
+	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
+	const [countdown, setCountdown] = useState<string>('')
+
 	const supabase = createClient()
+
+	// 1. Fetch usage and the timestamp of the oldest roast in the stack
+	const fetchUsage = useCallback(async () => {
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser()
+			if (!user) return
+
+			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+			const {
+				data,
+				count,
+				error: countError,
+			} = await supabase
+				.from('ai_logs')
+				.select('created_at', { count: 'exact' })
+				.eq('user_id', user.id)
+				.eq('status_code', 200)
+				.gt('created_at', last24h)
+				.order('created_at', { ascending: true }) // Oldest first
+
+			if (!countError) {
+				setUsageCount(count || 0)
+				if (data && data.length > 0) {
+					setNextResetTime(data[0].created_at)
+				}
+			}
+		} catch (err) {
+			console.error('Usage fetch failed:', err)
+		}
+	}, [supabase])
+
+	// 2. Countdown Timer Logic
+	useEffect(() => {
+		if (!nextResetTime || usageCount < DAILY_LIMIT) {
+			setCountdown('')
+			return
+		}
+
+		const timer = setInterval(() => {
+			const resetDate = new Date(nextResetTime)
+			resetDate.setHours(resetDate.getHours() + 24)
+
+			const now = new Date()
+			const diff = resetDate.getTime() - now.getTime()
+
+			if (diff <= 0) {
+				setCountdown('')
+				fetchUsage() // Refresh once time is up
+				clearInterval(timer)
+			} else {
+				const hours = Math.floor(diff / (1000 * 60 * 60))
+				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+				const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+				setCountdown(`${hours}h ${minutes}m ${seconds}s`)
+			}
+		}, 1000)
+
+		return () => clearInterval(timer)
+	}, [nextResetTime, usageCount, fetchUsage])
+
+	useEffect(() => {
+		fetchUsage()
+	}, [fetchUsage])
 
 	useEffect(() => {
 		let interval: NodeJS.Timeout
@@ -64,24 +137,20 @@ export default function AICoachPage() {
 				}),
 			})
 
-			// 🚨 DIAGNOSTIC CHECK: If server crashes, it often returns HTML. response.json() will fail here.
-			const contentType = response.headers.get('content-type')
-			if (!contentType || !contentType.includes('application/json')) {
-				const errorHtml = await response.text()
-				console.error('SERVER CRASHED WITH HTML:', errorHtml) // Check console to see the Vercel error page
-				throw new Error(`Server returned status ${response.status}. Check Network tab for details.`)
-			}
-
 			const data = await response.json()
 
 			if (!response.ok) {
-				console.error('API Error details:', data)
-				throw new Error(data.details || data.error || 'AI Coach failed to respond.')
+				if (data.error === 'DAILY_LIMIT_REACHED') {
+					setAdvice(data.advice)
+					fetchUsage() // Refresh reset time
+					return
+				}
+				throw new Error(data.details || data.error || 'AI Coach failed.')
 			}
 
 			setAdvice(data.advice)
+			fetchUsage()
 		} catch (err: any) {
-			console.error('AI Coach Frontend Error:', err)
 			setError(err.message)
 		} finally {
 			setLoading(false)
@@ -90,23 +159,47 @@ export default function AICoachPage() {
 
 	return (
 		<div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-4 py-8">
-			<header className="mb-8">
-				<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
-					AI Coach
-				</h1>
-				<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
+			<header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+				<div>
+					<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+						AI Coach
+					</h1>
+					<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
+				</div>
+
+				<div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl backdrop-blur-sm min-w-[220px]">
+					<div className="flex justify-between items-center mb-2">
+						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+							<Activity size={12} className="text-purple-400" /> Daily Roasts
+						</span>
+						<span className="text-xs font-bold text-white">
+							{usageCount}/{DAILY_LIMIT}
+						</span>
+					</div>
+					<div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-2">
+						<div
+							className={`h-full transition-all duration-1000 ${usageCount >= DAILY_LIMIT ? 'bg-red-500' : 'bg-gradient-to-r from-purple-500 to-blue-500'}`}
+							style={{ width: `${Math.min((usageCount / DAILY_LIMIT) * 100, 100)}%` }}
+						/>
+					</div>
+					{/* COUNTDOWN UI */}
+					{countdown && (
+						<div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold animate-pulse">
+							<Clock size={10} /> Next slot in: {countdown}
+						</div>
+					)}
+				</div>
 			</header>
 
 			{!advice && !loading && (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm relative group transition-all duration-500 hover:border-slate-600/80">
 					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-
 					<div className="w-20 h-20 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
 						<Zap className="text-purple-400 fill-purple-500/10" size={32} />
 					</div>
 
-					<h2 className="text-3xl font-extrabold text-white mb-6 z-10 relative transition-colors group-hover:text-purple-100">
-						Stop Guessing, Start Growing 🚀
+					<h2 className="text-3xl font-extrabold text-white mb-6 z-10 relative">
+						{usageCount >= DAILY_LIMIT ? 'Coach is Resting 😴' : 'Stop Guessing, Start Growing 🚀'}
 					</h2>
 
 					<div className="mb-8 max-w-xs mx-auto z-10 relative">
@@ -116,15 +209,18 @@ export default function AICoachPage() {
 							value={monthlyBudget}
 							onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 							onChange={(e) => setMonthlyBudget(e.target.value)}
-							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all hover:bg-slate-800/80"
+							disabled={usageCount >= DAILY_LIMIT}
+							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
 						/>
 					</div>
 
 					<button
 						onClick={handleAnalyze}
-						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 z-10 relative active:scale-95 cursor-pointer"
+						disabled={usageCount >= DAILY_LIMIT}
+						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 z-10 relative active:scale-95 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
 					>
-						Analyze My Finances <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+						{usageCount >= DAILY_LIMIT ? `Unlocked in ${countdown || '...'}` : 'Analyze My Finances'}
+						<ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
 					</button>
 				</section>
 			)}
@@ -133,16 +229,15 @@ export default function AICoachPage() {
 				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
-					<p className="text-sm text-slate-500 font-medium italic">Running projections...</p>
 				</div>
 			)}
 
 			{error && (
-				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4 animate-in zoom-in duration-300">
+				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4">
 					<AlertCircle size={24} className="shrink-0" />
 					<div>
-						<p className="font-bold">Error: {error}</p>
-						<p className="text-[10px] opacity-60">Look at browser console for raw server response.</p>
+						<p className="font-bold uppercase tracking-tight text-sm">Issue Found</p>
+						<p className="text-xs opacity-80">{error}</p>
 					</div>
 				</div>
 			)}
@@ -163,16 +258,16 @@ export default function AICoachPage() {
 						].map((stat, i) => (
 							<div
 								key={i}
-								className="bg-slate-900/50 p-6 rounded-3xl shadow-sm border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700/80 hover:bg-slate-900/80 transition-all duration-300 group"
+								className="bg-slate-900/50 p-6 rounded-3xl border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700 transition-all duration-300 group"
 							>
 								<div>
 									<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
-									<h3 className={`text-3xl font-bold ${stat.label === 'Audit Status' ? 'text-emerald-400 italic' : 'text-white'} mb-2`}>
+									<h3 className={`text-3xl font-bold ${stat.label === 'Audit Status' ? 'text-emerald-400 italic' : 'text-white'}`}>
 										{stat.value}
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform`}
 								>
 									<stat.icon size={24} />
 								</div>
@@ -180,44 +275,40 @@ export default function AICoachPage() {
 						))}
 					</div>
 
-					<div className="bg-slate-900/50 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-sm hover:border-slate-700/50 transition-colors duration-500">
-						<div className="p-8 md:p-12">
-							<div className="prose prose-invert max-w-none">
-								<ReactMarkdown
-									components={{
-										h1: ({ ...props }) => <h1 className="text-2xl font-bold mb-6 border-b border-slate-800 pb-4 text-white" {...props} />,
-										h2: ({ ...props }) => (
-											<h2 className="text-xl font-bold mt-8 mb-4 text-white border-l-4 border-purple-500 pl-3" {...props} />
-										),
-										p: ({ ...props }) => <p className="text-slate-300 mb-4" {...props} />,
-										li: ({ children }) => (
-											<div className="p-4 px-6 mb-2 flex items-start gap-3 bg-slate-800/30 rounded-2xl border border-slate-700/40 hover:bg-slate-800/50 hover:border-slate-600/40 transition-all duration-300 group">
-												<ChevronRight
-													size={18}
-													className="mt-1 text-purple-400 shrink-0 group-hover:translate-x-1 transition-transform"
-												/>
-												<span className="text-slate-100 font-bold">{children}</span>
-											</div>
-										),
-										strong: ({ ...props }) => <strong className="font-extrabold text-white bg-purple-500/20 px-1 rounded" {...props} />,
-										blockquote: ({ ...props }) => (
-											<div
-												className="bg-slate-950/60 text-slate-300 p-6 my-6 italic rounded-2xl border-l-8 border-purple-500"
-												{...props}
-											/>
-										),
-									}}
-								>
-									{advice}
-								</ReactMarkdown>
-							</div>
+					<div className="bg-slate-900/50 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-sm p-8 md:p-12 shadow-2xl">
+						<div className="prose prose-invert max-w-none">
+							<ReactMarkdown
+								components={{
+									h1: ({ ...props }) => (
+										<h1 className="text-2xl font-bold mb-6 border-b border-slate-800 pb-4 text-white uppercase tracking-tight" {...props} />
+									),
+									h2: ({ ...props }) => (
+										<h2 className="text-xl font-bold mt-8 mb-4 text-white border-l-4 border-purple-500 pl-3" {...props} />
+									),
+									p: ({ ...props }) => <p className="text-slate-300 mb-4 leading-relaxed" {...props} />,
+									li: ({ children }) => (
+										<div className="p-4 px-6 mb-2 flex items-start gap-3 bg-slate-800/30 rounded-2xl border border-slate-700/40 group hover:bg-slate-800/50 transition-all">
+											<ChevronRight size={18} className="mt-1 text-purple-400 shrink-0 group-hover:translate-x-1 transition-transform" />
+											<span className="text-slate-100 font-bold">{children}</span>
+										</div>
+									),
+									strong: ({ ...props }) => <strong className="font-extrabold text-white bg-purple-500/20 px-1 rounded" {...props} />,
+									blockquote: ({ ...props }) => (
+										<div className="bg-slate-950/60 text-slate-300 p-6 my-6 italic rounded-2xl border-l-8 border-purple-500" {...props} />
+									),
+								}}
+							>
+								{advice}
+							</ReactMarkdown>
+						</div>
+						{usageCount < DAILY_LIMIT && (
 							<button
 								onClick={handleAnalyze}
 								className="mt-8 text-purple-400 font-bold underline cursor-pointer hover:text-purple-300 transition-colors"
 							>
-								Refresh Analysis
+								Refresh Audit
 							</button>
-						</div>
+						)}
 					</div>
 				</div>
 			)}
