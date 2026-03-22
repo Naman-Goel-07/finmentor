@@ -31,18 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		try {
 			const { data, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single()
 
-			// PGRST116 means the row doesn't exist yet
-			if (error && error.code !== 'PGRST116') {
-				console.error('[AuthContext] Profile Fetch Error:', error.message)
-			}
+			// We use the email prefix as a smarter fallback than 'User'
+			const emailFallback = email.split('@')[0]
 
 			return {
 				id: userId,
 				email: email,
-				full_name: data?.full_name || 'FinMentor User',
+				full_name: data?.full_name || emailFallback,
 			}
 		} catch (err) {
-			return { id: userId, email: email, full_name: 'FinMentor User' }
+			return { id: userId, email: email, full_name: email.split('@')[0] }
 		}
 	}, [])
 
@@ -56,17 +54,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				} = await supabase.auth.getSession()
 
 				if (session?.user && mounted) {
-					// 🚀 STEP 1: Immediate Unlock
-					setUser({
-						id: session.user.id,
-						email: session.user.email || '',
-						full_name: 'FinMentor User',
-					})
-					setLoading(false)
+					// 🚀 STEP 1: Check Metadata (Instant)
+					// This is what you saved in your SignupPage!
+					const metaName = session.user.user_metadata?.full_name
 
-					// 🚀 STEP 2: Background Hydration
-					const fullProfile = await fetchProfileData(session.user.id, session.user.email || '')
-					if (mounted) setUser(fullProfile)
+					if (metaName) {
+						setUser({
+							id: session.user.id,
+							email: session.user.email || '',
+							full_name: metaName,
+						})
+						setLoading(false) // 🔓 Unlock instantly with the real name
+					} else {
+						// 🚀 STEP 2: Fallback to Database
+						const dbProfile = await fetchProfileData(session.user.id, session.user.email || '')
+						if (mounted) {
+							setUser(dbProfile)
+							setLoading(false) // 🔓 Unlock only once DB responds
+						}
+					}
 				} else {
 					if (mounted) setLoading(false)
 				}
@@ -86,10 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					setLoading(false)
 				}
 			} else if (session?.user && mounted) {
+				// Handle login: Use metadata name immediately
+				const metaName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
+
+				setUser({
+					id: session.user.id,
+					email: session.user.email || '',
+					full_name: metaName,
+				})
 				setLoading(false)
 
-				const userData = await fetchProfileData(session.user.id, session.user.email || '')
-				if (mounted) setUser(userData)
+				// Sync with DB in the background
+				const dbProfile = await fetchProfileData(session.user.id, session.user.email || '')
+				if (mounted) setUser(dbProfile)
 			}
 		})
 
@@ -101,10 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	const contextValue = useMemo(() => ({ user, loading, setUser }), [user, loading])
 
-	// 🛑 THE MAGIC FIX: Do not render the app until the initial check is done!
+	// 🛑 The Guard: Prevents WelcomeHeader from rendering with "null" data
 	if (loading) {
-		// Returning null prevents the "flash of null" that wipes your child components.
-		// You could also return a full-screen loading spinner here if you prefer.
 		return null
 	}
 
