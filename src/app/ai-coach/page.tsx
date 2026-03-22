@@ -40,13 +40,19 @@ export default function AICoachPage() {
 	const syncUsageFromDB = async (userId: string) => {
 		try {
 			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-			const { data, count } = await supabase
+			const {
+				data,
+				count,
+				error: dbError,
+			} = await supabase
 				.from('ai_logs')
 				.select('created_at', { count: 'exact' })
 				.eq('user_id', userId)
 				.eq('status_code', 200)
 				.gt('created_at', last24h)
 				.order('created_at', { ascending: true })
+
+			if (dbError) throw dbError
 
 			const freshCount = count || 0
 			setUsageCount(freshCount)
@@ -58,38 +64,39 @@ export default function AICoachPage() {
 		}
 	}
 
-	// 1. INSTANT INIT (Auth is already handled by Context!)
+	// 1. BOOTSTRAP: Instant Hydration & Usage Sync
 	useEffect(() => {
 		let isMounted = true
 
-		// A. INSTANT UI HYDRATION: Read cache immediately
-		const cachedAdvice = sessionStorage.getItem('finmentor_advice')
-		const cachedBudget = sessionStorage.getItem('finmentor_budget')
-		const cachedCount = sessionStorage.getItem('finmentor_count')
+		const initializeCoach = async () => {
+			// A. INSTANT UI HYDRATION: Read cache immediately
+			const cachedAdvice = sessionStorage.getItem('finmentor_advice')
+			const cachedBudget = sessionStorage.getItem('finmentor_budget')
+			const cachedCount = sessionStorage.getItem('finmentor_count')
 
-		if (cachedAdvice) setAdvice(cachedAdvice)
-		if (cachedBudget) setMonthlyBudget(cachedBudget)
-		if (cachedCount) setExpenseCount(parseInt(cachedCount))
+			if (cachedAdvice) setAdvice(cachedAdvice)
+			if (cachedBudget) setMonthlyBudget(cachedBudget)
+			if (cachedCount) setExpenseCount(parseInt(cachedCount))
 
-		// B. BACKGROUND DB SYNC: Just pull the usage limits now
-		const fetchLimits = async () => {
+			// B. BACKGROUND SYNC: Pull usage limits
 			try {
-				if (currentUserId && isMounted) {
+				if (currentUserId) {
 					await syncUsageFromDB(currentUserId)
 				}
 			} catch (e) {
-				console.error('Initialization failed:', e)
+				console.error('Initialization sync failed:', e)
 			} finally {
-				if (isMounted) setIsReady(true) // Unlocks the UI
+				// THE KEY: Unlock the UI spinner no matter what happens in the sync
+				if (isMounted) setIsReady(true)
 			}
 		}
 
-		fetchLimits()
+		initializeCoach()
 
 		return () => {
 			isMounted = false
 		}
-	}, [currentUserId]) // <-- Depends on currentUserId, which triggers instantly
+	}, [currentUserId]) // Re-runs instantly once AuthContext provides the user
 
 	// 2. ANALYZE (With Explicit Cache Revalidation)
 	const handleAnalyze = async () => {
@@ -123,12 +130,12 @@ export default function AICoachPage() {
 			setAdvice(data.advice)
 			setExpenseCount(currentCount)
 
-			// Update Session Cache (Global keys)
+			// Update Session Cache
 			sessionStorage.setItem('finmentor_advice', data.advice)
 			sessionStorage.setItem('finmentor_budget', monthlyBudget)
 			sessionStorage.setItem('finmentor_count', currentCount.toString())
 
-			// EXPLICIT REVALIDATION: Pull exact usage from DB
+			// Force refresh of the counter
 			await syncUsageFromDB(currentUserId)
 		} catch (err: any) {
 			setError(err.message)
@@ -137,7 +144,6 @@ export default function AICoachPage() {
 		}
 	}
 
-	// Wipes UI and Cache completely
 	const clearActiveAudit = () => {
 		setAdvice(null)
 		sessionStorage.removeItem('finmentor_advice')
@@ -172,7 +178,7 @@ export default function AICoachPage() {
 		return () => clearInterval(timer)
 	}, [nextResetTime, usageCount, currentUserId])
 
-	// Cycler for loading jokes
+	// Loading message cycler
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -199,7 +205,6 @@ export default function AICoachPage() {
 							<Activity size={12} className="text-purple-400" /> Daily Limit
 						</span>
 						<span className="text-xs font-bold text-white flex items-center gap-2">
-							{/* TINY SPINNER: Shows here instead of blocking the screen */}
 							{!isReady && <Loader2 size={12} className="animate-spin text-purple-400" />}
 							{isReady && `${usageCount}/${DAILY_LIMIT}`}
 						</span>
@@ -224,7 +229,7 @@ export default function AICoachPage() {
 					<Zap className="text-purple-400 mx-auto mb-6 transition-transform group-hover:scale-110" size={48} />
 					<h2 className="text-3xl font-extrabold text-white mb-6">Ready for an intervention? 🚀</h2>
 					<div className="mb-8 max-w-xs mx-auto">
-						<label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Budget (₹)</label>
+						<label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Monthly Budget (₹)</label>
 						<input
 							type="number"
 							value={monthlyBudget}
