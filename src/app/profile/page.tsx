@@ -292,7 +292,8 @@ export default function ProfilePage() {
 								<div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800/60 flex gap-3 items-start">
 									<Info className="text-emerald-500 shrink-0 mt-0.5" size={16} />
 									<p className="text-[11px] leading-relaxed text-slate-400 font-medium">
-										Re-entering your current password adds an extra layer of security before critical account changes.
+										Once your password is changed, you will remain logged in on this device, but you will need to use your new password next
+										time you sign in.
 									</p>
 								</div>
 							</div>
