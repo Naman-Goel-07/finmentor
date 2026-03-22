@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { GoogleGenAI } from '@google/genai'
 import { NextResponse } from 'next/server'
 
-// THE FIX: Pass the string directly, NOT an object { apiKey: ... }
-const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || '')
+// The new SDK initializes with an object
+const client = new GoogleGenAI({
+	apiKey: process.env.GEMINI_API_KEY || '',
+})
 
 export async function POST(req: Request) {
 	try {
@@ -11,18 +13,13 @@ export async function POST(req: Request) {
 		const {
 			data: { user },
 		} = await supabase.auth.getUser()
-
 		if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-		const body = await req.json()
-		const { income, expenses, goals } = body
+		const { income, expenses, goals } = await req.json()
 
 		if (!process.env.GEMINI_API_KEY) {
 			return NextResponse.json({ error: 'API Key missing on server' }, { status: 500 })
 		}
-
-		// KEEPING YOUR EXACT MODEL
-		const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
 		// KEEPING YOUR EXACT PROMPT
 		const prompt = `
@@ -54,16 +51,21 @@ export async function POST(req: Request) {
             Tone: Gen-Z friendly, conversational, heavy on emojis 💸🔥.
         `
 
-		const result = await model.generateContent(prompt)
-		const response = await result.response
-		const adviceText = response.text()
+		// FIX: In @google/genai (v1.0.0+), you call client.models.generateContent directly
+		// KEEPING YOUR EXACT MODEL: gemini-2.5-flash
+		const response = await client.models.generateContent({
+			model: 'gemini-2.5-flash',
+			contents: [{ role: 'user', parts: [{ text: prompt }] }],
+		})
+
+		// In the new SDK, .text is a direct property of the response
+		const adviceText = response.text || 'Coach is speechless... try again!'
 
 		return NextResponse.json({ advice: adviceText })
 	} catch (error: any) {
-		// This will now catch the error and send it to your browser console
 		return NextResponse.json(
 			{
-				error: 'AI_COACH_BACKEND_ERROR',
+				error: 'AI_COACH_ERROR',
 				details: error.message,
 			},
 			{ status: 500 },
