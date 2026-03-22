@@ -21,16 +21,16 @@ export default function AICoachPage() {
 	const router = useRouter()
 	const supabase = createClient()
 
-	// PDF Capture Ref
+	// Reference for the PDF Capture
 	const reportRef = useRef<HTMLDivElement>(null)
 
-	// Identity & Init State
-	const [isReady, setIsReady] = useState(false)
+	// Auth & Identity States
+	const [authLoading, setAuthLoading] = useState(true)
 	const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
 	// UI States
 	const [loading, setLoading] = useState(false)
-	const [isDownloading, setIsDownloading] = useState(false)
+	const [isDownloading, setIsDownloading] = useState(false) // State for PDF button
 	const [advice, setAdvice] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [expenseCount, setExpenseCount] = useState(0)
@@ -42,7 +42,7 @@ export default function AICoachPage() {
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
-	// 1. ONE-TIME INIT: Kills the refresh loop and uses sessionStorage
+	// 1. ONE-TIME INITIALIZATION (Kills the infinite loop & uses sessionStorage)
 	useEffect(() => {
 		const initializeSession = async () => {
 			try {
@@ -53,7 +53,7 @@ export default function AICoachPage() {
 				if (user) {
 					setCurrentUserId(user.id)
 
-					// Hydrate from Session Cache (temporary, acts like Next.js cache)
+					// 1a. Load cached data from Session (acts like Next.js cache)
 					const cachedAdvice = sessionStorage.getItem(`finmentor_advice_${user.id}`)
 					const cachedBudget = sessionStorage.getItem(`finmentor_budget_${user.id}`)
 					const cachedCount = sessionStorage.getItem(`finmentor_count_${user.id}`)
@@ -62,9 +62,13 @@ export default function AICoachPage() {
 					if (cachedBudget) setMonthlyBudget(cachedBudget)
 					if (cachedCount) setExpenseCount(parseInt(cachedCount))
 
-					// Fetch usage exactly once on mount
+					// 1b. Fetch real usage exact ONCE on mount
 					const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-					const { data, count } = await supabase
+					const {
+						data,
+						count,
+						error: countError,
+					} = await supabase
 						.from('ai_logs')
 						.select('created_at', { count: 'exact' })
 						.eq('user_id', user.id)
@@ -72,32 +76,35 @@ export default function AICoachPage() {
 						.gt('created_at', last24h)
 						.order('created_at', { ascending: true })
 
-					setUsageCount(count || 0)
-					setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
+					if (!countError) {
+						setUsageCount(count || 0)
+						setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
+					}
 				}
 			} catch (e) {
-				console.error('Initialization failed:', e)
+				console.error('Auth session sync failed:', e)
 			} finally {
-				setIsReady(true) // Unlocks the UI
+				// ALWAYS hide loader, no matter what happens
+				setAuthLoading(false)
 			}
 		}
 
 		initializeSession()
-	}, []) // <-- Empty array guarantees this runs ONLY once, preventing hangs.
+	}, []) // <-- EMPTY ARRAY. This runs only once. No more syncing loops!
 
-	// 2. BULLETPROOF PDF HANDLER
+	// 2. BULLETPROOF PDF HANDLER (A4 + Timeout)
 	const handleDownloadPDF = async () => {
 		if (!reportRef.current) return
 		setIsDownloading(true)
 
 		try {
-			// Let the UI/animations settle before taking the picture
+			// Let the UI animations finish before snapping the photo
 			await new Promise((resolve) => setTimeout(resolve, 300))
-			const element = reportRef.current
 
+			const element = reportRef.current
 			const canvas = await html2canvas(element, {
 				scale: 2,
-				backgroundColor: '#0f172a', // Enforce dark theme
+				backgroundColor: '#0f172a', // Slate-900
 				useCORS: true,
 				allowTaint: true,
 				logging: false,
@@ -107,7 +114,7 @@ export default function AICoachPage() {
 
 			const imgData = canvas.toDataURL('image/png')
 
-			// Fit to standard A4 size to prevent browser memory crashes
+			// Standardize to A4 size to prevent browser memory crashes
 			const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 			const pdfWidth = pdf.internal.pageSize.getWidth()
 			const pdfHeight = (canvas.height * pdfWidth) / canvas.width
@@ -149,16 +156,14 @@ export default function AICoachPage() {
 			const data = await response.json()
 			if (!response.ok && data.error !== 'DAILY_LIMIT_REACHED') throw new Error(data.details || data.error)
 
-			// Update UI
+			// Update UI & Update Session Cache
 			setAdvice(data.advice)
 			setExpenseCount(currentCount)
-
-			// Save to Session Cache
 			sessionStorage.setItem(`finmentor_advice_${currentUserId}`, data.advice)
 			sessionStorage.setItem(`finmentor_budget_${currentUserId}`, monthlyBudget)
 			sessionStorage.setItem(`finmentor_count_${currentUserId}`, currentCount.toString())
 
-			// Optimistically update usage count (prevents needing another fetch)
+			// Increment usage optimistically if not capped
 			if (data.error !== 'DAILY_LIMIT_REACHED') {
 				setUsageCount((prev) => prev + 1)
 			}
@@ -195,7 +200,7 @@ export default function AICoachPage() {
 
 			if (diff <= 0) {
 				setCountdown('')
-				window.location.reload() // Clean refresh when slot opens
+				window.location.reload() // Clean refresh when a slot opens
 			} else {
 				const hours = Math.floor(diff / (1000 * 60 * 60))
 				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
@@ -218,8 +223,7 @@ export default function AICoachPage() {
 		return () => clearInterval(interval)
 	}, [loading])
 
-	// Guard Render
-	if (!isReady) {
+	if (authLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[60vh]">
 				<Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
