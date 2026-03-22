@@ -118,7 +118,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 					{!isCollapsed && (
 						<div className="overflow-hidden whitespace-nowrap flex-1">
 							<p className="text-xs font-bold text-slate-200 truncate italic">{user?.full_name || 'FinMentor User'}</p>
-							<p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">PRO PLAN</p>
+							{/* <p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">PRO PLAN</p> */}
 						</div>
 					)}
 				</div>
