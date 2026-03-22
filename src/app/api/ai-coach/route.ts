@@ -71,7 +71,7 @@ You've used your 10 daily audits. Your wallet needs a break, and so does the AI.
         `
 
 		const response = await client.models.generateContent({
-			model: 'gemini-2.5-flash',
+			model: 'gemini-3-flash-preview',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
 		})
 
