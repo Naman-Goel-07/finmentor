@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -18,19 +18,19 @@ const LOADING_MESSAGES = [
 const DAILY_LIMIT = 10
 
 export default function AICoachPage() {
-	const pathname = usePathname()
+	const router = useRouter()
 	const supabase = createClient()
 
-	// Reference for the PDF Capture
+	// PDF Capture Ref
 	const reportRef = useRef<HTMLDivElement>(null)
 
-	// Auth & Identity States
-	const [authLoading, setAuthLoading] = useState(true)
+	// Identity & Init State
+	const [isReady, setIsReady] = useState(false)
 	const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
 	// UI States
 	const [loading, setLoading] = useState(false)
-	const [isDownloading, setIsDownloading] = useState(false) // State for PDF button
+	const [isDownloading, setIsDownloading] = useState(false)
 	const [advice, setAdvice] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [expenseCount, setExpenseCount] = useState(0)
@@ -42,101 +42,77 @@ export default function AICoachPage() {
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
-	const fetchUsage = useCallback(
-		async (userId: string) => {
-			try {
-				const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-				const {
-					data,
-					count,
-					error: countError,
-				} = await supabase
-					.from('ai_logs')
-					.select('created_at', { count: 'exact' })
-					.eq('user_id', userId)
-					.eq('status_code', 200)
-					.gt('created_at', last24h)
-					.order('created_at', { ascending: true })
-
-				if (!countError) {
-					const freshCount = count || 0
-					setUsageCount(freshCount)
-					setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
-					localStorage.setItem(`finmentor_usage_${userId}`, freshCount.toString())
-				}
-			} catch (err) {
-				console.error('Usage sync failed:', err)
-			}
-		},
-		[supabase],
-	)
-
+	// 1. ONE-TIME INIT: Kills the refresh loop and uses sessionStorage
 	useEffect(() => {
-		const syncSession = async () => {
+		const initializeSession = async () => {
 			try {
 				const {
 					data: { user },
 				} = await supabase.auth.getUser()
+
 				if (user) {
 					setCurrentUserId(user.id)
-					const savedAdvice = localStorage.getItem(`finmentor_advice_${user.id}`)
-					const savedUsage = localStorage.getItem(`finmentor_usage_${user.id}`)
-					const savedBudget = localStorage.getItem(`finmentor_budget_${user.id}`)
-					const savedCount = localStorage.getItem(`finmentor_count_${user.id}`)
 
-					if (savedAdvice) setAdvice(savedAdvice)
-					if (savedUsage) setUsageCount(parseInt(savedUsage))
-					if (savedBudget) setMonthlyBudget(savedBudget)
-					if (savedCount) setExpenseCount(parseInt(savedCount))
+					// Hydrate from Session Cache (temporary, acts like Next.js cache)
+					const cachedAdvice = sessionStorage.getItem(`finmentor_advice_${user.id}`)
+					const cachedBudget = sessionStorage.getItem(`finmentor_budget_${user.id}`)
+					const cachedCount = sessionStorage.getItem(`finmentor_count_${user.id}`)
 
-					fetchUsage(user.id)
+					if (cachedAdvice) setAdvice(cachedAdvice)
+					if (cachedBudget) setMonthlyBudget(cachedBudget)
+					if (cachedCount) setExpenseCount(parseInt(cachedCount))
+
+					// Fetch usage exactly once on mount
+					const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+					const { data, count } = await supabase
+						.from('ai_logs')
+						.select('created_at', { count: 'exact' })
+						.eq('user_id', user.id)
+						.eq('status_code', 200)
+						.gt('created_at', last24h)
+						.order('created_at', { ascending: true })
+
+					setUsageCount(count || 0)
+					setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
 				}
 			} catch (e) {
-				console.error('Auth session sync failed:', e)
+				console.error('Initialization failed:', e)
 			} finally {
-				setAuthLoading(false)
+				setIsReady(true) // Unlocks the UI
 			}
 		}
-		syncSession()
-	}, [supabase, fetchUsage])
 
-	// FIX: Removed router.refresh() to prevent the "Syncing AI Protocol" infinite hang
-	useEffect(() => {
-		if (!authLoading && currentUserId) {
-			fetchUsage(currentUserId)
-		}
-	}, [pathname, fetchUsage, currentUserId, authLoading])
+		initializeSession()
+	}, []) // <-- Empty array guarantees this runs ONLY once, preventing hangs.
 
-	// PDF Download Handler
+	// 2. BULLETPROOF PDF HANDLER
 	const handleDownloadPDF = async () => {
 		if (!reportRef.current) return
 		setIsDownloading(true)
 
 		try {
-			// FIX: html2canvas breaks if the user is scrolled down. We scroll to top temporarily.
-			const scrollY = window.scrollY
-			window.scrollTo(0, 0)
-
+			// Let the UI/animations settle before taking the picture
+			await new Promise((resolve) => setTimeout(resolve, 300))
 			const element = reportRef.current
-			const canvas = await html2canvas(element, {
-				scale: 2, // High resolution
-				backgroundColor: '#0f172a', // Slate-900 to match theme
-				useCORS: true,
-				allowTaint: true, // FIX: Allows Lucide SVGs to render without breaking
-				logging: false,
-			})
 
-			// Restore user's scroll position
-			window.scrollTo(0, scrollY)
+			const canvas = await html2canvas(element, {
+				scale: 2,
+				backgroundColor: '#0f172a', // Enforce dark theme
+				useCORS: true,
+				allowTaint: true,
+				logging: false,
+				windowWidth: element.scrollWidth,
+				windowHeight: element.scrollHeight,
+			})
 
 			const imgData = canvas.toDataURL('image/png')
-			const pdf = new jsPDF({
-				orientation: 'portrait',
-				unit: 'px',
-				format: [canvas.width / 2, canvas.height / 2], // Scale back down for standard size
-			})
 
-			pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2)
+			// Fit to standard A4 size to prevent browser memory crashes
+			const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+			const pdfWidth = pdf.internal.pageSize.getWidth()
+			const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+			pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
 			pdf.save(`FinMentor-Audit-${new Date().toISOString().split('T')[0]}.pdf`)
 		} catch (err) {
 			console.error('PDF Export failed:', err)
@@ -150,11 +126,13 @@ export default function AICoachPage() {
 		if (!currentUserId) return
 		setLoading(true)
 		setError(null)
+
 		try {
 			const [expensesRes, goalsRes] = await Promise.all([
 				supabase.from('expenses').select('*').eq('user_id', currentUserId).order('date', { ascending: false }).limit(20),
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', currentUserId).eq('is_archived', false),
 			])
+
 			if (expensesRes.error) throw new Error(expensesRes.error.message)
 			const currentCount = expensesRes.data?.length || 0
 
@@ -167,10 +145,25 @@ export default function AICoachPage() {
 					goals: goalsRes.data,
 				}),
 			})
+
 			const data = await response.json()
 			if (!response.ok && data.error !== 'DAILY_LIMIT_REACHED') throw new Error(data.details || data.error)
 
-			updateStoredAdvice(currentUserId, data.advice, monthlyBudget, currentCount)
+			// Update UI
+			setAdvice(data.advice)
+			setExpenseCount(currentCount)
+
+			// Save to Session Cache
+			sessionStorage.setItem(`finmentor_advice_${currentUserId}`, data.advice)
+			sessionStorage.setItem(`finmentor_budget_${currentUserId}`, monthlyBudget)
+			sessionStorage.setItem(`finmentor_count_${currentUserId}`, currentCount.toString())
+
+			// Optimistically update usage count (prevents needing another fetch)
+			if (data.error !== 'DAILY_LIMIT_REACHED') {
+				setUsageCount((prev) => prev + 1)
+			}
+
+			router.refresh()
 		} catch (err: any) {
 			setError(err.message)
 		} finally {
@@ -178,19 +171,13 @@ export default function AICoachPage() {
 		}
 	}
 
-	const updateStoredAdvice = (uid: string, newAdvice: string, budget: string, count: number) => {
-		setAdvice(newAdvice)
-		setExpenseCount(count)
-		localStorage.setItem(`finmentor_advice_${uid}`, newAdvice)
-		localStorage.setItem(`finmentor_budget_${uid}`, budget)
-		localStorage.setItem(`finmentor_count_${uid}`, count.toString())
-		fetchUsage(uid)
-	}
-
 	const clearActiveAudit = () => {
-		if (!currentUserId) return
 		setAdvice(null)
-		localStorage.removeItem(`finmentor_advice_${currentUserId}`)
+		if (currentUserId) {
+			sessionStorage.removeItem(`finmentor_advice_${currentUserId}`)
+			sessionStorage.removeItem(`finmentor_budget_${currentUserId}`)
+			sessionStorage.removeItem(`finmentor_count_${currentUserId}`)
+		}
 	}
 
 	// Countdown Timer
@@ -208,8 +195,7 @@ export default function AICoachPage() {
 
 			if (diff <= 0) {
 				setCountdown('')
-				if (currentUserId) fetchUsage(currentUserId)
-				clearInterval(timer)
+				window.location.reload() // Clean refresh when slot opens
 			} else {
 				const hours = Math.floor(diff / (1000 * 60 * 60))
 				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
@@ -219,7 +205,7 @@ export default function AICoachPage() {
 		}, 1000)
 
 		return () => clearInterval(timer)
-	}, [nextResetTime, usageCount, fetchUsage, currentUserId])
+	}, [nextResetTime, usageCount])
 
 	// Loading Message Cycler
 	useEffect(() => {
@@ -232,7 +218,8 @@ export default function AICoachPage() {
 		return () => clearInterval(interval)
 	}, [loading])
 
-	if (authLoading) {
+	// Guard Render
+	if (!isReady) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[60vh]">
 				<Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
@@ -314,7 +301,6 @@ export default function AICoachPage() {
 							<RotateCcw size={14} className="text-purple-400" /> Active Audit Record
 						</p>
 						<div className="flex gap-4">
-							{/* PDF DOWNLOAD BUTTON */}
 							<button
 								onClick={handleDownloadPDF}
 								disabled={isDownloading}
@@ -333,7 +319,6 @@ export default function AICoachPage() {
 						</div>
 					</div>
 
-					{/* Stats Grid */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						{[
 							{ label: 'Items Scanned', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
@@ -357,7 +342,7 @@ export default function AICoachPage() {
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 transition-transform group-hover:scale-110`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
 								>
 									<stat.icon size={24} />
 								</div>
@@ -365,8 +350,7 @@ export default function AICoachPage() {
 						))}
 					</div>
 
-					{/* PDF CONTAINER WRAPPER (Ref added here) */}
-					<div ref={reportRef} className="bg-slate-900 rounded-3xl border border-slate-800/60 p-8 md:p-12 shadow-2xl relative overflow-hidden">
+					<div ref={reportRef} className="bg-[#0f172a] rounded-3xl border border-slate-800/60 p-8 md:p-12 shadow-2xl relative overflow-hidden">
 						<div className="prose prose-invert max-w-none text-slate-300">
 							<ReactMarkdown
 								components={{
