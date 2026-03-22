@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight } from 'lucide-react'
+import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ReactMarkdown from 'react-markdown'
 
 const LOADING_MESSAGES = [
 	'Scanning for Zomato addiction...',
-	'Calculating missed SIP opportunities...',
+	'Calculating SIP opportunities...',
 	'Consulting the wealth spirits...',
 	'Auditing your spending habits...',
 	'Checking goal deadlines...',
@@ -44,14 +44,14 @@ export default function AICoachPage() {
 			const {
 				data: { user },
 			} = await supabase.auth.getUser()
-			if (!user) throw new Error('Unauthorized')
+			if (!user) throw new Error('Unauthorized: Please log in.')
 
 			const [expensesRes, goalsRes] = await Promise.all([
 				supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', user.id).eq('is_archived', false),
 			])
 
-			if (expensesRes.error) throw expensesRes.error
+			if (expensesRes.error) throw new Error(`Expenses DB Error: ${expensesRes.error.message}`)
 			setExpenseCount(expensesRes.data?.length || 0)
 
 			const response = await fetch('/api/ai-coach', {
@@ -64,13 +64,23 @@ export default function AICoachPage() {
 				}),
 			})
 
+			// CRITICAL FIX: Check if response is JSON to prevent the "Stuck Loading" crash
+			const contentType = response.headers.get('content-type')
+			if (!contentType || !contentType.includes('application/json')) {
+				const rawBody = await response.text()
+				console.error('Non-JSON Response received:', rawBody)
+				throw new Error(`Server Error: Received ${response.status}. Make sure your folder is 'app/api/ai-coach/route.ts'`)
+			}
+
 			const data = await response.json()
 			if (!response.ok) throw new Error(data.error || 'Failed to analyze.')
 
 			setAdvice(data.advice)
 		} catch (err: any) {
+			console.error('AI Coach Frontend Error:', err.message)
 			setError(err.message)
 		} finally {
+			// This line is now guaranteed to run
 			setLoading(false)
 		}
 	}
@@ -84,7 +94,6 @@ export default function AICoachPage() {
 				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini.</p>
 			</header>
 
-			{/* INITIAL ACTION CARD: Re-added Hover Glow and Scaling */}
 			{!advice && !loading && (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm relative group transition-all duration-500 hover:border-slate-600/80">
 					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -103,32 +112,41 @@ export default function AICoachPage() {
 							type="number"
 							value={monthlyBudget}
 							onChange={(e) => setMonthlyBudget(e.target.value)}
+							onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all hover:bg-slate-800/80"
 						/>
 					</div>
 
 					<button
 						onClick={handleAnalyze}
-						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 z-10 relative active:scale-95"
+						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 z-10 relative active:scale-95 cursor-pointer"
 					>
 						Analyze My Finances <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
 					</button>
 				</section>
 			)}
 
-			{/* LOADING STATE */}
 			{loading && (
 				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
+					<p className="text-sm text-slate-500 font-medium italic">Running projections...</p>
 				</div>
 			)}
 
-			{/* ADVICE RESULT */}
+			{error && (
+				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4 animate-in zoom-in duration-300">
+					<AlertCircle size={24} className="shrink-0" />
+					<div>
+						<p className="font-bold">Coach is stuck: {error}</p>
+						<p className="text-xs opacity-60">Check the browser console (F12) for more details.</p>
+					</div>
+				</div>
+			)}
+
 			{advice && (
 				<div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-						{/* Stat Cards with hover border brightening */}
 						{[
 							{ label: 'Items Scanned', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
 							{
