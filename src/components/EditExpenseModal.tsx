@@ -112,6 +112,8 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 									type="text"
 									value={note}
 									onChange={(e) => setNote(e.target.value)}
+									// Prevent "e", "E", "+", and "-"
+									onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 									className={inputClasses}
 									placeholder="e.g. Starbucks coffee"
 								/>

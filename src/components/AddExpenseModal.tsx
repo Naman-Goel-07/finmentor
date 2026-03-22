@@ -78,6 +78,8 @@ export default function AddExpenseModal() {
 									required
 									value={amount}
 									onChange={(e) => setAmount(e.target.value)}
+									// Prevent "e", "E", "+", and "-"
+									onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 									className={inputClasses}
 									placeholder="₹0.00"
 								/>
