@@ -40,23 +40,35 @@ export default function AICoachPage() {
 	const syncUsageFromDB = async (userId: string) => {
 		try {
 			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+			// Use the optimized 'head: true' approach like your backend
 			const {
-				data,
 				count,
+				data,
 				error: dbError,
 			} = await supabase
 				.from('ai_logs')
-				.select('created_at', { count: 'exact' })
+				.select('created_at', { count: 'exact' }) // Remove 'head: true' so we can get the reset time
 				.eq('user_id', userId)
 				.eq('status_code', 200)
 				.gt('created_at', last24h)
 				.order('created_at', { ascending: true })
 
-			if (dbError) throw dbError
+			if (dbError) {
+				console.error('Supabase Query Error:', dbError.message)
+				return 0
+			}
 
 			const freshCount = count || 0
 			setUsageCount(freshCount)
-			setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
+
+			// Ensure we handle the data properly
+			if (data && data.length > 0) {
+				setNextResetTime(data[0].created_at)
+			} else {
+				setNextResetTime(null)
+			}
+
 			return freshCount
 		} catch (err) {
 			console.error('DB Sync failed:', err)
