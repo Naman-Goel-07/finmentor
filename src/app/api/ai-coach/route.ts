@@ -2,8 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { GoogleGenAI } from '@google/genai'
 import { NextResponse } from 'next/server'
 
-const apiKey = process.env.GEMINI_API_KEY || ''
-const genAI = new GoogleGenAI(apiKey)
+// THE FIX: Pass the string directly, NOT an object { apiKey: ... }
+const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || '')
 
 export async function POST(req: Request) {
 	try {
@@ -17,13 +17,14 @@ export async function POST(req: Request) {
 		const body = await req.json()
 		const { income, expenses, goals } = body
 
-		if (!apiKey) {
-			// This will now show up in your browser!
-			return NextResponse.json({ error: 'SERVER_ERROR', details: 'GEMINI_API_KEY is missing from deployment environment variables.' }, { status: 500 })
+		if (!process.env.GEMINI_API_KEY) {
+			return NextResponse.json({ error: 'API Key missing on server' }, { status: 500 })
 		}
 
+		// KEEPING YOUR EXACT MODEL
 		const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
+		// KEEPING YOUR EXACT PROMPT
 		const prompt = `
             You are FinMentor AI, the ultimate financial brain for Gen-Z students.
             
@@ -59,12 +60,11 @@ export async function POST(req: Request) {
 
 		return NextResponse.json({ advice: adviceText })
 	} catch (error: any) {
-		// 🚨 CRITICAL: This returns the EXACT error to your browser console
+		// This will now catch the error and send it to your browser console
 		return NextResponse.json(
 			{
-				error: 'AI_BACKEND_CRASH',
+				error: 'AI_COACH_BACKEND_ERROR',
 				details: error.message,
-				raw: JSON.stringify(error),
 			},
 			{ status: 500 },
 		)
