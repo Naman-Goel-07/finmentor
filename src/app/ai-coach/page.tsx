@@ -8,10 +8,7 @@ import ReactMarkdown from 'react-markdown'
 
 const LOADING_MESSAGES = [
 	'Scanning for Zomato addiction...',
-	'Calculating SIP opportunities...',
 	'Consulting the wealth spirits...',
-	'Auditing your spending habits...',
-	'Checking goal deadlines...',
 	'Preparing your financial roast...',
 	'Analyzing patterns... stay calm.',
 ]
@@ -21,6 +18,7 @@ const DAILY_LIMIT = 10
 export default function AICoachPage() {
 	const router = useRouter()
 	const pathname = usePathname()
+	const supabase = createClient()
 
 	const [loading, setLoading] = useState(false)
 	const [advice, setAdvice] = useState<string | null>(null)
@@ -29,29 +27,40 @@ export default function AICoachPage() {
 	const [monthlyBudget, setMonthlyBudget] = useState('10000')
 	const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
 
-	// Usage & Countdown States
 	const [usageCount, setUsageCount] = useState(0)
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
+	const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
-	const supabase = createClient()
+	// 1. HYDRATION: Load user-specific data from localStorage
+	const hydrateUserStats = useCallback((userId: string) => {
+		const savedAdvice = localStorage.getItem(`finmentor_advice_${userId}`)
+		const savedBudget = localStorage.getItem(`finmentor_budget_${userId}`)
+		const savedCount = localStorage.getItem(`finmentor_count_${userId}`)
+		const savedUsage = localStorage.getItem(`finmentor_usage_${userId}`)
+		const savedReset = localStorage.getItem(`finmentor_reset_${userId}`)
 
-	// 1. HYDRATION: Load EVERYTHING from localStorage instantly on mount
-	useEffect(() => {
-		const savedAdvice = localStorage.getItem('finmentor_last_advice')
-		const savedBudget = localStorage.getItem('finmentor_last_budget')
-		const savedCount = localStorage.getItem('finmentor_last_expense_count')
-		const savedUsage = localStorage.getItem('finmentor_last_usage')
-		const savedReset = localStorage.getItem('finmentor_last_reset')
-
-		if (savedAdvice) setAdvice(savedAdvice)
+		setAdvice(savedAdvice)
 		if (savedBudget) setMonthlyBudget(savedBudget)
 		if (savedCount) setExpenseCount(parseInt(savedCount))
-		if (savedUsage) setUsageCount(parseInt(savedUsage)) // No more 0/10 flicker!
+		if (savedUsage) setUsageCount(parseInt(savedUsage))
 		if (savedReset) setNextResetTime(savedReset)
 	}, [])
 
-	// 2. FETCH USAGE: Syncs DB with LocalStorage
+	// 2. AUTH CHECK: Identify the user first
+	useEffect(() => {
+		const getIdentity = async () => {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser()
+			if (user) {
+				setCurrentUserId(user.id)
+				hydrateUserStats(user.id)
+			}
+		}
+		getIdentity()
+	}, [supabase, hydrateUserStats])
+
 	const fetchUsage = useCallback(async () => {
 		try {
 			const {
@@ -80,16 +89,16 @@ export default function AICoachPage() {
 				setUsageCount(freshCount)
 				setNextResetTime(freshReset)
 
-				// Update Persistence
-				localStorage.setItem('finmentor_last_usage', freshCount.toString())
-				if (freshReset) localStorage.setItem('finmentor_last_reset', freshReset)
+				// Update user-specific persistence
+				localStorage.setItem(`finmentor_usage_${user.id}`, freshCount.toString())
+				if (freshReset) localStorage.setItem(`finmentor_reset_${user.id}`, freshReset)
 			}
 		} catch (err) {
 			console.error('Usage fetch failed:', err)
 		}
 	}, [supabase])
 
-	// Countdown Timer Logic
+	// Countdown Timer
 	useEffect(() => {
 		if (!nextResetTime || usageCount < DAILY_LIMIT) {
 			setCountdown('')
@@ -99,25 +108,23 @@ export default function AICoachPage() {
 		const timer = setInterval(() => {
 			const resetDate = new Date(nextResetTime)
 			resetDate.setHours(resetDate.getHours() + 24)
-			const now = new Date()
-			const diff = resetDate.getTime() - now.getTime()
+			const diff = resetDate.getTime() - new Date().getTime()
 
 			if (diff <= 0) {
 				setCountdown('')
 				fetchUsage()
 				clearInterval(timer)
 			} else {
-				const hours = Math.floor(diff / (1000 * 60 * 60))
-				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-				const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-				setCountdown(`${hours}h ${minutes}m ${seconds}s`)
+				const h = Math.floor(diff / 3600000)
+				const m = Math.floor((diff % 3600000) / 60000)
+				const s = Math.floor((diff % 60000) / 1000)
+				setCountdown(`${h}h ${m}m ${s}s`)
 			}
 		}, 1000)
 
 		return () => clearInterval(timer)
 	}, [nextResetTime, usageCount, fetchUsage])
 
-	// Background sync on page land
 	useEffect(() => {
 		fetchUsage()
 		router.refresh()
@@ -141,14 +148,14 @@ export default function AICoachPage() {
 			const {
 				data: { user },
 			} = await supabase.auth.getUser()
-			if (!user) throw new Error('Unauthorized: Please log in.')
+			if (!user) throw new Error('Unauthorized')
 
 			const [expensesRes, goalsRes] = await Promise.all([
 				supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', user.id).eq('is_archived', false),
 			])
 
-			if (expensesRes.error) throw new Error(`DB Error: ${expensesRes.error.message}`)
+			if (expensesRes.error) throw new Error(expensesRes.error.message)
 			const currentCount = expensesRes.data?.length || 0
 
 			const response = await fetch('/api/ai-coach', {
@@ -165,13 +172,13 @@ export default function AICoachPage() {
 
 			if (!response.ok) {
 				if (data.error === 'DAILY_LIMIT_REACHED') {
-					updateStoredAdvice(data.advice, monthlyBudget, currentCount)
+					updateStoredAdvice(user.id, data.advice, monthlyBudget, currentCount)
 					return
 				}
-				throw new Error(data.details || data.error || 'AI Coach failed.')
+				throw new Error(data.details || data.error)
 			}
 
-			updateStoredAdvice(data.advice, monthlyBudget, currentCount)
+			updateStoredAdvice(user.id, data.advice, monthlyBudget, currentCount)
 		} catch (err: any) {
 			setError(err.message)
 		} finally {
@@ -179,18 +186,19 @@ export default function AICoachPage() {
 		}
 	}
 
-	const updateStoredAdvice = (newAdvice: string, budget: string, count: number) => {
+	const updateStoredAdvice = (uid: string, newAdvice: string, budget: string, count: number) => {
 		setAdvice(newAdvice)
 		setExpenseCount(count)
-		localStorage.setItem('finmentor_last_advice', newAdvice)
-		localStorage.setItem('finmentor_last_budget', budget)
-		localStorage.setItem('finmentor_last_expense_count', count.toString())
+		localStorage.setItem(`finmentor_advice_${uid}`, newAdvice)
+		localStorage.setItem(`finmentor_budget_${uid}`, budget)
+		localStorage.setItem(`finmentor_count_${uid}`, count.toString())
 		fetchUsage()
 	}
 
 	const clearActiveAudit = () => {
+		if (!currentUserId) return
 		setAdvice(null)
-		localStorage.removeItem('finmentor_last_advice')
+		localStorage.removeItem(`finmentor_advice_${currentUserId}`)
 	}
 
 	return (
@@ -203,7 +211,6 @@ export default function AICoachPage() {
 					<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
 				</div>
 
-				{/* USAGE METER UI */}
 				<div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl backdrop-blur-sm min-w-[220px]">
 					<div className="flex justify-between items-center mb-2">
 						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -254,7 +261,7 @@ export default function AICoachPage() {
 			)}
 
 			{loading && (
-				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm animate-in fade-in">
+				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
 				</div>
@@ -264,14 +271,14 @@ export default function AICoachPage() {
 				<div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
 					<div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60">
 						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-							<RotateCcw size={14} className="text-purple-400" /> Latest Session
+							<RotateCcw size={14} className="text-purple-400" /> User Protocol: {currentUserId?.slice(0, 8)}
 						</p>
 						<button
 							onClick={handleAnalyze}
 							disabled={usageCount >= DAILY_LIMIT}
 							className="text-xs font-black text-purple-400 uppercase hover:text-purple-300 transition-colors disabled:opacity-30"
 						>
-							Refresh Audit →
+							Run New Audit →
 						</button>
 					</div>
 
@@ -298,7 +305,7 @@ export default function AICoachPage() {
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 transition-transform group-hover:scale-110`}
 								>
 									<stat.icon size={24} />
 								</div>
