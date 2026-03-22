@@ -57,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 				if (session?.user && mounted) {
 					// 🚀 STEP 1: Immediate Unlock
-					// We have a session, so the user is "logged in". Stop the loader now.
 					setUser({
 						id: session.user.id,
 						email: session.user.email || '',
@@ -66,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					setLoading(false)
 
 					// 🚀 STEP 2: Background Hydration
-					// Fetch the name silently while the user interacts with the dashboard.
 					const fullProfile = await fetchProfileData(session.user.id, session.user.email || '')
 					if (mounted) setUser(fullProfile)
 				} else {
@@ -88,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					setLoading(false)
 				}
 			} else if (session?.user && mounted) {
-				// ✅ KEY FIX: Stop the loading icon immediately when a session is found
 				setLoading(false)
 
 				const userData = await fetchProfileData(session.user.id, session.user.email || '')
@@ -97,12 +94,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		})
 
 		return () => {
-			mounted = false // ✅ FIX: Changed from true to false
+			mounted = false
 			subscription.unsubscribe()
 		}
 	}, [fetchProfileData])
 
 	const contextValue = useMemo(() => ({ user, loading, setUser }), [user, loading])
+
+	// 🛑 THE MAGIC FIX: Do not render the app until the initial check is done!
+	if (loading) {
+		// Returning null prevents the "flash of null" that wipes your child components.
+		// You could also return a full-screen loading spinner here if you prefer.
+		return null
+	}
 
 	return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }
