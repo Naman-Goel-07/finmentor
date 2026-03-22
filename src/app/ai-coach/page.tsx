@@ -90,16 +90,17 @@ export default function AICoachPage() {
 			if (cachedBudget) setMonthlyBudget(cachedBudget)
 			if (cachedCount) setExpenseCount(parseInt(cachedCount))
 
-			// B. BACKGROUND SYNC: Pull usage limits
+			// FIX: UNLOCK THE UI IMMEDIATELY
+			// This ensures the budget input and analyze button are usable right away.
+			if (isMounted) setIsReady(true)
+
+			// B. BACKGROUND SYNC: Pull usage limits without blocking the UI
 			try {
 				if (currentUserId) {
 					await syncUsageFromDB(currentUserId)
 				}
 			} catch (e) {
-				console.error('Initialization sync failed:', e)
-			} finally {
-				// THE KEY: Unlock the UI spinner no matter what happens in the sync
-				if (isMounted) setIsReady(true)
+				console.error('Background sync failed:', e)
 			}
 		}
 
