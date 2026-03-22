@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 	if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
 	try {
-		// 2. 24h Rate Limit Enforcement
+		// 2. 24h Rate Limit Enforcement (10 per day)
 		const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 		const { count, error: countError } = await supabase
 			.from('ai_logs')
@@ -43,14 +43,15 @@ export async function POST(req: Request) {
             You are FinMentor AI, an expert financial coach for Gen-Z students.
             CONTEXT:
             - Monthly Budget: ₹${income}
-            - Expenses: ${JSON.stringify(expenses)}
-            - Goals: ${JSON.stringify(goals)}
+            - Recent Expenses: ${JSON.stringify(expenses)}
+            - Active Savings Goals: ${JSON.stringify(goals)}
             
-            TASK: Roast their spending habits, identify specific "Goal Killers", and audit their progress.
-            FORMAT: Markdown (H1, H2, Bullet points). TONE: Brutally honest but helpful.
+            TASK: Roast their spending habits, identify specific "Goal Killers" (e.g. food apps, luxury buys), and audit their goal progress. 
+            Calculate how much they need to save daily to hit their goals if they are behind.
+            FORMAT: Markdown (H1, H2, Bullet points). TONE: Brutally honest, conversational, heavy on emojis.
         `
 
-		// 4. Generate Content
+		// 4. Generate Content (Gemini 2.5 series)
 		const response = await client.models.generateContent({
 			model: 'gemini-2.5-flash',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -67,7 +68,6 @@ export async function POST(req: Request) {
 
 		return NextResponse.json({ advice: adviceText })
 	} catch (error: any) {
-		// Log Error but don't count it against the user's limit
 		console.error('AI Route Error:', error.message)
 		return NextResponse.json({ error: 'AI_OFFLINE', details: error.message }, { status: 500 })
 	}
