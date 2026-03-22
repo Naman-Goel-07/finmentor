@@ -53,7 +53,11 @@ export default function EditContributionModal({ contribution, goalName }: EditCo
 	return (
 		<>
 			{/* TRIGGER BUTTON: The Pencil icon inside the history row */}
-			<button onClick={() => setIsOpen(true)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer">
+			<button
+				onClick={() => setIsOpen(true)}
+				className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer
+               opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
+			>
 				<Pencil size={12} />
 			</button>
 

@@ -55,7 +55,14 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 		<button
 			onClick={handleDelete}
 			disabled={isDeleting}
-			className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover/item:opacity-100 disabled:opacity-100 cursor-pointer"
+			className={`
+        p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer
+        ${
+			isDeleting
+				? 'opacity-100' // Keep visible while deleting
+				: 'opacity-100 md:opacity-0 md:group-hover/item:opacity-100' // Normal hover logic
+		}
+    `}
 			title="Delete contribution"
 		>
 			{isDeleting ? <Loader2 size={14} className="animate-spin text-red-500" /> : <X size={14} />}

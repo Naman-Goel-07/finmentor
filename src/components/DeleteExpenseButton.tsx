@@ -45,7 +45,8 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 		<button
 			onClick={handleDelete}
 			disabled={isDeleting}
-			className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50 cursor-pointer relative z-10"
+			className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all 
+               opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-50 cursor-pointer relative z-10"
 			title="Delete Expense"
 		>
 			{isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}

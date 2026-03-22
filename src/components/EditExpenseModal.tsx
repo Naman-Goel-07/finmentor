@@ -56,7 +56,8 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 			{/* Trigger Button - Inline Table Style */}
 			<button
 				onClick={() => setIsOpen(true)}
-				className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+				className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all 
+               opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer"
 				title="Edit Expense"
 			>
 				<Pencil size={16} />
