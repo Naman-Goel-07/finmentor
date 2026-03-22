@@ -1,12 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw, Download } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 const LOADING_MESSAGES = [
 	'Scanning for Zomato addiction...',
@@ -18,42 +15,66 @@ const LOADING_MESSAGES = [
 const DAILY_LIMIT = 10
 
 export default function AICoachPage() {
-	const router = useRouter()
 	const supabase = createClient()
 
-	// Reference for the PDF Capture
-	const reportRef = useRef<HTMLDivElement>(null)
-
-	// Auth & Identity States
-	const [authLoading, setAuthLoading] = useState(true)
+	// State Guards
+	const [isReady, setIsReady] = useState(false)
 	const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
 	// UI States
 	const [loading, setLoading] = useState(false)
-	const [isDownloading, setIsDownloading] = useState(false) // State for PDF button
 	const [advice, setAdvice] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [expenseCount, setExpenseCount] = useState(0)
 	const [monthlyBudget, setMonthlyBudget] = useState('10000')
 	const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
 
-	// Usage & Countdown States
+	// Usage States
 	const [usageCount, setUsageCount] = useState(0)
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
-	// 1. ONE-TIME INITIALIZATION (Kills the infinite loop & uses sessionStorage)
+	// REVALIDATION HELPER: Forces a fresh pull from the database
+	const syncUsageFromDB = async (userId: string) => {
+		try {
+			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+			const { data, count } = await supabase
+				.from('ai_logs')
+				.select('created_at', { count: 'exact' })
+				.eq('user_id', userId)
+				.eq('status_code', 200)
+				.gt('created_at', last24h)
+				.order('created_at', { ascending: true })
+
+			const freshCount = count || 0
+			setUsageCount(freshCount)
+			setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
+			return freshCount
+		} catch (err) {
+			console.error('DB Sync failed:', err)
+			return 0
+		}
+	}
+
+	// 1. ONE-TIME INIT (With Safety Fallback)
 	useEffect(() => {
+		let isMounted = true
+
+		// SAFETY NET: If Supabase hangs for more than 3 seconds, unlock the UI anyway.
+		const fallbackTimer = setTimeout(() => {
+			if (isMounted) setIsReady(true)
+		}, 3000)
+
 		const initializeSession = async () => {
 			try {
 				const {
 					data: { user },
 				} = await supabase.auth.getUser()
 
-				if (user) {
+				if (user && isMounted) {
 					setCurrentUserId(user.id)
 
-					// 1a. Load cached data from Session (acts like Next.js cache)
+					// 1. Pull active report from temporary session cache
 					const cachedAdvice = sessionStorage.getItem(`finmentor_advice_${user.id}`)
 					const cachedBudget = sessionStorage.getItem(`finmentor_budget_${user.id}`)
 					const cachedCount = sessionStorage.getItem(`finmentor_count_${user.id}`)
@@ -62,73 +83,26 @@ export default function AICoachPage() {
 					if (cachedBudget) setMonthlyBudget(cachedBudget)
 					if (cachedCount) setExpenseCount(parseInt(cachedCount))
 
-					// 1b. Fetch real usage exact ONCE on mount
-					const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-					const {
-						data,
-						count,
-						error: countError,
-					} = await supabase
-						.from('ai_logs')
-						.select('created_at', { count: 'exact' })
-						.eq('user_id', user.id)
-						.eq('status_code', 200)
-						.gt('created_at', last24h)
-						.order('created_at', { ascending: true })
-
-					if (!countError) {
-						setUsageCount(count || 0)
-						setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
-					}
+					// 2. Fetch fresh usage count from DB to ensure accuracy
+					await syncUsageFromDB(user.id)
 				}
 			} catch (e) {
-				console.error('Auth session sync failed:', e)
+				console.error('Initialization failed:', e)
 			} finally {
-				// ALWAYS hide loader, no matter what happens
-				setAuthLoading(false)
+				clearTimeout(fallbackTimer) // Clear the safety net
+				if (isMounted) setIsReady(true) // Unlock UI instantly
 			}
 		}
 
 		initializeSession()
-	}, []) // <-- EMPTY ARRAY. This runs only once. No more syncing loops!
 
-	// 2. BULLETPROOF PDF HANDLER (A4 + Timeout)
-	const handleDownloadPDF = async () => {
-		if (!reportRef.current) return
-		setIsDownloading(true)
-
-		try {
-			// Let the UI animations finish before snapping the photo
-			await new Promise((resolve) => setTimeout(resolve, 300))
-
-			const element = reportRef.current
-			const canvas = await html2canvas(element, {
-				scale: 2,
-				backgroundColor: '#0f172a', // Slate-900
-				useCORS: true,
-				allowTaint: true,
-				logging: false,
-				windowWidth: element.scrollWidth,
-				windowHeight: element.scrollHeight,
-			})
-
-			const imgData = canvas.toDataURL('image/png')
-
-			// Standardize to A4 size to prevent browser memory crashes
-			const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-			const pdfWidth = pdf.internal.pageSize.getWidth()
-			const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-
-			pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-			pdf.save(`FinMentor-Audit-${new Date().toISOString().split('T')[0]}.pdf`)
-		} catch (err) {
-			console.error('PDF Export failed:', err)
-			alert('Failed to save PDF. Please try again.')
-		} finally {
-			setIsDownloading(false)
+		return () => {
+			isMounted = false
+			clearTimeout(fallbackTimer)
 		}
-	}
+	}, [supabase])
 
+	// 2. ANALYZE (With Explicit Cache Revalidation)
 	const handleAnalyze = async () => {
 		if (!currentUserId) return
 		setLoading(true)
@@ -156,19 +130,17 @@ export default function AICoachPage() {
 			const data = await response.json()
 			if (!response.ok && data.error !== 'DAILY_LIMIT_REACHED') throw new Error(data.details || data.error)
 
-			// Update UI & Update Session Cache
+			// Update UI
 			setAdvice(data.advice)
 			setExpenseCount(currentCount)
+
+			// Update Session Cache completely
 			sessionStorage.setItem(`finmentor_advice_${currentUserId}`, data.advice)
 			sessionStorage.setItem(`finmentor_budget_${currentUserId}`, monthlyBudget)
 			sessionStorage.setItem(`finmentor_count_${currentUserId}`, currentCount.toString())
 
-			// Increment usage optimistically if not capped
-			if (data.error !== 'DAILY_LIMIT_REACHED') {
-				setUsageCount((prev) => prev + 1)
-			}
-
-			router.refresh()
+			// EXPLICIT REVALIDATION: Pull exact usage from DB
+			await syncUsageFromDB(currentUserId)
 		} catch (err: any) {
 			setError(err.message)
 		} finally {
@@ -176,6 +148,7 @@ export default function AICoachPage() {
 		}
 	}
 
+	// Wipes UI and Cache
 	const clearActiveAudit = () => {
 		setAdvice(null)
 		if (currentUserId) {
@@ -185,7 +158,7 @@ export default function AICoachPage() {
 		}
 	}
 
-	// Countdown Timer
+	// Countdown Timer logic
 	useEffect(() => {
 		if (!nextResetTime || usageCount < DAILY_LIMIT) {
 			setCountdown('')
@@ -195,24 +168,24 @@ export default function AICoachPage() {
 		const timer = setInterval(() => {
 			const resetDate = new Date(nextResetTime)
 			resetDate.setHours(resetDate.getHours() + 24)
-			const now = new Date()
-			const diff = resetDate.getTime() - now.getTime()
+			const diff = resetDate.getTime() - new Date().getTime()
 
 			if (diff <= 0) {
 				setCountdown('')
-				window.location.reload() // Clean refresh when a slot opens
+				if (currentUserId) syncUsageFromDB(currentUserId)
+				clearInterval(timer)
 			} else {
-				const hours = Math.floor(diff / (1000 * 60 * 60))
-				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-				const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+				const hours = Math.floor(diff / 3600000)
+				const minutes = Math.floor((diff % 3600000) / 60000)
+				const seconds = Math.floor((diff % 60000) / 1000)
 				setCountdown(`${hours}h ${minutes}m ${seconds}s`)
 			}
 		}, 1000)
 
 		return () => clearInterval(timer)
-	}, [nextResetTime, usageCount])
+	}, [nextResetTime, usageCount, currentUserId])
 
-	// Loading Message Cycler
+	// Cycler for loading jokes
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -222,15 +195,6 @@ export default function AICoachPage() {
 		}
 		return () => clearInterval(interval)
 	}, [loading])
-
-	if (authLoading) {
-		return (
-			<div className="flex flex-col items-center justify-center min-h-[60vh]">
-				<Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
-				<p className="text-slate-400 font-medium animate-pulse">Syncing AI Protocol...</p>
-			</div>
-		)
-	}
 
 	return (
 		<div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-4 py-8">
@@ -247,8 +211,10 @@ export default function AICoachPage() {
 						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
 							<Activity size={12} className="text-purple-400" /> Daily Limit
 						</span>
-						<span className="text-xs font-bold text-white">
-							{usageCount}/{DAILY_LIMIT}
+						<span className="text-xs font-bold text-white flex items-center gap-2">
+							{/* TINY SPINNER: Shows here instead of blocking the screen */}
+							{!isReady && <Loader2 size={12} className="animate-spin text-purple-400" />}
+							{isReady && `${usageCount}/${DAILY_LIMIT}`}
 						</span>
 					</div>
 					<div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-2">
@@ -276,13 +242,13 @@ export default function AICoachPage() {
 							type="number"
 							value={monthlyBudget}
 							onChange={(e) => setMonthlyBudget(e.target.value)}
-							disabled={usageCount >= DAILY_LIMIT}
+							disabled={usageCount >= DAILY_LIMIT || !isReady}
 							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all disabled:opacity-30"
 						/>
 					</div>
 					<button
 						onClick={handleAnalyze}
-						disabled={usageCount >= DAILY_LIMIT}
+						disabled={usageCount >= DAILY_LIMIT || !isReady}
 						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 active:scale-95 disabled:opacity-30"
 					>
 						{usageCount >= DAILY_LIMIT ? `Locked: ${countdown}` : 'Analyze My Finances'}
@@ -304,23 +270,13 @@ export default function AICoachPage() {
 						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
 							<RotateCcw size={14} className="text-purple-400" /> Active Audit Record
 						</p>
-						<div className="flex gap-4">
-							<button
-								onClick={handleDownloadPDF}
-								disabled={isDownloading}
-								className="text-xs font-black text-blue-400 flex items-center gap-1.5 hover:text-blue-300 transition-colors disabled:opacity-50"
-							>
-								{isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-								SAVE PDF
-							</button>
-							<button
-								onClick={handleAnalyze}
-								disabled={usageCount >= DAILY_LIMIT}
-								className="text-xs font-black text-purple-400 hover:text-purple-300 transition-colors uppercase"
-							>
-								Run New Audit →
-							</button>
-						</div>
+						<button
+							onClick={handleAnalyze}
+							disabled={usageCount >= DAILY_LIMIT || !isReady}
+							className="text-xs font-black text-purple-400 hover:text-purple-300 transition-colors uppercase disabled:opacity-30"
+						>
+							Run New Audit →
+						</button>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -354,7 +310,7 @@ export default function AICoachPage() {
 						))}
 					</div>
 
-					<div ref={reportRef} className="bg-[#0f172a] rounded-3xl border border-slate-800/60 p-8 md:p-12 shadow-2xl relative overflow-hidden">
+					<div className="bg-[#0f172a] rounded-3xl border border-slate-800/60 p-8 md:p-12 shadow-2xl relative overflow-hidden">
 						<div className="prose prose-invert max-w-none text-slate-300">
 							<ReactMarkdown
 								components={{
