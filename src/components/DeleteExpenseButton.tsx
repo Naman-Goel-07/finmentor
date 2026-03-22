@@ -10,7 +10,13 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 	const [isDeleting, setIsDeleting] = useState(false)
 	const supabase = createClient()
 
-	const handleDelete = async () => {
+	// 1. Accept the React MouseEvent
+	const handleDelete = async (e: React.MouseEvent) => {
+		// 2. STOP PROPAGATION: This prevents the row or parent
+		// from capturing the click and doing something else.
+		e.preventDefault()
+		e.stopPropagation()
+
 		if (!id) return
 
 		if (!confirm('Delete this record? It will be removed from your AI coaching history.')) return
@@ -26,12 +32,11 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 				return
 			}
 
-			// Successfully deleted, refresh the page data
+			// 3. Refresh triggers the server component to re-fetch fresh data
 			router.refresh()
 		} catch (error) {
 			console.error('Unexpected Error:', error)
 		} finally {
-			// Keep it true until the refresh starts to prevent double-clicks
 			setIsDeleting(false)
 		}
 	}
@@ -40,7 +45,7 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 		<button
 			onClick={handleDelete}
 			disabled={isDeleting}
-			className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 cursor-pointer"
+			className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50 cursor-pointer relative z-10"
 			title="Delete Expense"
 		>
 			{isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}

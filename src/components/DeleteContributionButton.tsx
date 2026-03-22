@@ -35,7 +35,6 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 
 			if (onSuccess) onSuccess()
 		} catch (err: any) {
-			// Updated terminology to "contribution"
 			alert('Could not delete contribution.')
 			setIsDeleting(false)
 		}
