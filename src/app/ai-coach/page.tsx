@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock } from 'lucide-react'
+import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter, usePathname } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 
 const LOADING_MESSAGES = [
@@ -18,6 +19,9 @@ const LOADING_MESSAGES = [
 const DAILY_LIMIT = 10
 
 export default function AICoachPage() {
+	const router = useRouter()
+	const pathname = usePathname()
+
 	const [loading, setLoading] = useState(false)
 	const [advice, setAdvice] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
@@ -25,14 +29,24 @@ export default function AICoachPage() {
 	const [monthlyBudget, setMonthlyBudget] = useState('10000')
 	const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
 
-	// Meter & Timer States
+	// Usage & Countdown States
 	const [usageCount, setUsageCount] = useState(0)
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
 	const supabase = createClient()
 
-	// 1. Fetch usage and the timestamp of the oldest roast in the rolling 24h stack
+	// 1. PERSISTENCE LOGIC: Load advice from localStorage on mount
+	useEffect(() => {
+		const savedAdvice = localStorage.getItem('finmentor_last_advice')
+		const savedBudget = localStorage.getItem('finmentor_last_budget')
+		const savedCount = localStorage.getItem('finmentor_last_expense_count')
+
+		if (savedAdvice) setAdvice(savedAdvice)
+		if (savedBudget) setMonthlyBudget(savedBudget)
+		if (savedCount) setExpenseCount(parseInt(savedCount))
+	}, [])
+
 	const fetchUsage = useCallback(async () => {
 		try {
 			const {
@@ -52,11 +66,10 @@ export default function AICoachPage() {
 				.eq('user_id', user.id)
 				.eq('status_code', 200)
 				.gt('created_at', last24h)
-				.order('created_at', { ascending: true }) // Get oldest roast first
+				.order('created_at', { ascending: true })
 
 			if (!countError) {
 				setUsageCount(count || 0)
-				// nextResetTime is 24h after the OLDEST roast in the current last-24h window
 				if (data && data.length > 0) {
 					setNextResetTime(data[0].created_at)
 				} else {
@@ -68,9 +81,8 @@ export default function AICoachPage() {
 		}
 	}, [supabase])
 
-	// 2. Countdown Timer Logic
+	// Countdown Timer Logic
 	useEffect(() => {
-		// We only need a countdown if they are AT or OVER the limit
 		if (!nextResetTime || usageCount < DAILY_LIMIT) {
 			setCountdown('')
 			return
@@ -79,13 +91,12 @@ export default function AICoachPage() {
 		const timer = setInterval(() => {
 			const resetDate = new Date(nextResetTime)
 			resetDate.setHours(resetDate.getHours() + 24)
-
 			const now = new Date()
 			const diff = resetDate.getTime() - now.getTime()
 
 			if (diff <= 0) {
 				setCountdown('')
-				fetchUsage() // Auto-refresh UI when a slot opens up
+				fetchUsage()
 				clearInterval(timer)
 			} else {
 				const hours = Math.floor(diff / (1000 * 60 * 60))
@@ -98,11 +109,12 @@ export default function AICoachPage() {
 		return () => clearInterval(timer)
 	}, [nextResetTime, usageCount, fetchUsage])
 
+	// Refresh usage but DON'T clear advice on page switch
 	useEffect(() => {
 		fetchUsage()
-	}, [fetchUsage])
+		router.refresh()
+	}, [pathname, fetchUsage, router])
 
-	// Cycle Loading Messages
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -116,7 +128,8 @@ export default function AICoachPage() {
 	const handleAnalyze = async () => {
 		setLoading(true)
 		setError(null)
-		setAdvice(null)
+		// Note: We don't clear advice here yet so the old one stays visible until the new one is ready
+		// or you can setAdvice(null) if you want a clean slate during loading.
 
 		try {
 			const {
@@ -130,7 +143,8 @@ export default function AICoachPage() {
 			])
 
 			if (expensesRes.error) throw new Error(`DB Error: ${expensesRes.error.message}`)
-			setExpenseCount(expensesRes.data?.length || 0)
+			const currentCount = expensesRes.data?.length || 0
+			setExpenseCount(currentCount)
 
 			const response = await fetch('/api/ai-coach', {
 				method: 'POST',
@@ -146,20 +160,32 @@ export default function AICoachPage() {
 
 			if (!response.ok) {
 				if (data.error === 'DAILY_LIMIT_REACHED') {
-					setAdvice(data.advice)
-					fetchUsage() // Refresh reset time immediately
+					updateStoredAdvice(data.advice, monthlyBudget, currentCount)
 					return
 				}
-				throw new Error(data.details || data.error || 'AI Coach failed to respond.')
+				throw new Error(data.details || data.error || 'AI Coach failed.')
 			}
 
-			setAdvice(data.advice)
-			fetchUsage() // Update meter after success
+			updateStoredAdvice(data.advice, monthlyBudget, currentCount)
 		} catch (err: any) {
 			setError(err.message)
 		} finally {
 			setLoading(false)
 		}
+	}
+
+	// Helper to save to state AND localStorage
+	const updateStoredAdvice = (newAdvice: string, budget: string, count: number) => {
+		setAdvice(newAdvice)
+		localStorage.setItem('finmentor_last_advice', newAdvice)
+		localStorage.setItem('finmentor_last_budget', budget)
+		localStorage.setItem('finmentor_last_expense_count', count.toString())
+		fetchUsage()
+	}
+
+	const clearActiveAudit = () => {
+		setAdvice(null)
+		localStorage.removeItem('finmentor_last_advice')
 	}
 
 	return (
@@ -172,7 +198,6 @@ export default function AICoachPage() {
 					<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
 				</div>
 
-				{/* USAGE METER UI */}
 				<div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl backdrop-blur-sm min-w-[220px]">
 					<div className="flex justify-between items-center mb-2">
 						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -199,34 +224,25 @@ export default function AICoachPage() {
 			{!advice && !loading && (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm relative group transition-all duration-500 hover:border-slate-600/80">
 					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-
-					<div className="w-20 h-20 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
-						<Zap className="text-purple-400 fill-purple-500/10" size={32} />
-					</div>
-
-					<h2 className="text-3xl font-extrabold text-white mb-6 z-10 relative">
-						{usageCount >= DAILY_LIMIT ? 'Coach is Resting 😴' : 'Stop Guessing, Start Growing 🚀'}
-					</h2>
-
-					<div className="mb-8 max-w-xs mx-auto z-10 relative">
+					<Zap className="text-purple-400 mx-auto mb-6 transition-transform group-hover:scale-110" size={48} />
+					<h2 className="text-3xl font-extrabold text-white mb-6">Ready for an intervention? 🚀</h2>
+					<div className="mb-8 max-w-xs mx-auto">
 						<label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Budget (₹)</label>
 						<input
 							type="number"
 							value={monthlyBudget}
-							onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 							onChange={(e) => setMonthlyBudget(e.target.value)}
 							disabled={usageCount >= DAILY_LIMIT}
-							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all disabled:opacity-30"
 						/>
 					</div>
-
 					<button
 						onClick={handleAnalyze}
 						disabled={usageCount >= DAILY_LIMIT}
-						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 z-10 relative active:scale-95 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 active:scale-95 disabled:opacity-30"
 					>
-						{usageCount >= DAILY_LIMIT ? `Unlocked in ${countdown || '...'}` : 'Analyze My Finances'}
-						<ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+						{usageCount >= DAILY_LIMIT ? `Locked: ${countdown}` : 'Analyze My Finances'}
+						<ChevronRight size={20} />
 					</button>
 				</section>
 			)}
@@ -235,23 +251,25 @@ export default function AICoachPage() {
 				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
-					<p className="text-sm text-slate-500 font-medium italic">Running projections...</p>
 				</div>
 			)}
 
-			{error && (
-				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4 animate-in zoom-in duration-300">
-					<AlertCircle size={24} className="shrink-0" />
-					<div>
-						<p className="font-bold uppercase tracking-tight text-sm">Issue Found</p>
-						<p className="text-xs opacity-80">{error}</p>
-					</div>
-				</div>
-			)}
-
-			{advice && (
+			{advice && !loading && (
 				<div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+					<div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60">
+						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+							<RotateCcw size={14} className="text-purple-400" /> Cached Report
+						</p>
+						<button
+							onClick={handleAnalyze}
+							disabled={usageCount >= DAILY_LIMIT}
+							className="text-xs font-black text-purple-400 uppercase hover:text-purple-300 transition-colors disabled:opacity-30"
+						>
+							Run New Audit →
+						</button>
+					</div>
+
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						{[
 							{ label: 'Items Scanned', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
 							{
@@ -265,7 +283,7 @@ export default function AICoachPage() {
 						].map((stat, i) => (
 							<div
 								key={i}
-								className="bg-slate-900/50 p-6 rounded-3xl border border-slate-800/60 flex items-start justify-between backdrop-blur-sm hover:border-slate-700 transition-all duration-300 group"
+								className="bg-slate-900/50 p-6 rounded-3xl border border-slate-800/60 flex items-start justify-between backdrop-blur-sm group hover:border-slate-700 transition-all duration-300"
 							>
 								<div>
 									<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
@@ -274,7 +292,7 @@ export default function AICoachPage() {
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 transition-transform group-hover:scale-110`}
 								>
 									<stat.icon size={24} />
 								</div>
@@ -282,7 +300,7 @@ export default function AICoachPage() {
 						))}
 					</div>
 
-					<div className="bg-slate-900/50 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-sm p-8 md:p-12 shadow-2xl">
+					<div className="bg-slate-900/50 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-sm p-8 md:p-12 shadow-2xl relative">
 						<div className="prose prose-invert max-w-none">
 							<ReactMarkdown
 								components={{
@@ -292,7 +310,6 @@ export default function AICoachPage() {
 									h2: ({ ...props }) => (
 										<h2 className="text-xl font-bold mt-8 mb-4 text-white border-l-4 border-purple-500 pl-3" {...props} />
 									),
-									p: ({ ...props }) => <p className="text-slate-300 mb-4 leading-relaxed" {...props} />,
 									li: ({ children }) => (
 										<div className="p-4 px-6 mb-2 flex items-start gap-3 bg-slate-800/30 rounded-2xl border border-slate-700/40 group hover:bg-slate-800/50 transition-all">
 											<ChevronRight size={18} className="mt-1 text-purple-400 shrink-0 group-hover:translate-x-1 transition-transform" />
@@ -308,15 +325,20 @@ export default function AICoachPage() {
 								{advice}
 							</ReactMarkdown>
 						</div>
-						{usageCount < DAILY_LIMIT && (
-							<button
-								onClick={handleAnalyze}
-								className="mt-8 text-purple-400 font-bold underline cursor-pointer hover:text-purple-300 transition-colors"
-							>
-								Refresh Audit
+						<div className="mt-10 pt-6 border-t border-slate-800 flex justify-between items-center">
+							<button onClick={clearActiveAudit} className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors">
+								Clear This Report
 							</button>
-						)}
+							<span className="text-[10px] text-slate-600 font-mono tracking-tighter uppercase">AI Protocol V2.5 Active</span>
+						</div>
 					</div>
+				</div>
+			)}
+
+			{error && (
+				<div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 flex items-center gap-4 animate-in zoom-in">
+					<AlertCircle size={24} className="shrink-0" />
+					<p className="text-xs font-bold">{error}</p>
 				</div>
 			)}
 		</div>
