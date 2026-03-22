@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { clearCache } from '@/app/actions'
 
 interface EditExpenseProps {
 	expense: {
@@ -44,7 +43,6 @@ export default function EditExpenseModal({ expense }: EditExpenseProps) {
 			if (!res.ok) throw new Error(data.error || 'Failed to update expense')
 
 			setIsOpen(false)
-			await clearCache('/expenses')
 			router.refresh()
 		} catch (err: any) {
 			setError(err.message)

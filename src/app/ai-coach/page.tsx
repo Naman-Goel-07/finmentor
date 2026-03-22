@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/context/AuthContext'
 import ReactMarkdown from 'react-markdown'
 
 const LOADING_MESSAGES = [
@@ -16,10 +17,11 @@ const DAILY_LIMIT = 10
 
 export default function AICoachPage() {
 	const supabase = createClient()
+	const { user } = useAuth()
+	const currentUserId = user?.id
 
 	// State Guards
 	const [isReady, setIsReady] = useState(false)
-	const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
 	// UI States
 	const [loading, setLoading] = useState(false)
@@ -56,11 +58,11 @@ export default function AICoachPage() {
 		}
 	}
 
-	// 1. INSTANT INIT (No Network Waiting)
+	// 1. INSTANT INIT (Auth is already handled by Context!)
 	useEffect(() => {
 		let isMounted = true
 
-		// A. INSTANT UI HYDRATION: Read cache immediately, ignoring Auth speed
+		// A. INSTANT UI HYDRATION: Read cache immediately
 		const cachedAdvice = sessionStorage.getItem('finmentor_advice')
 		const cachedBudget = sessionStorage.getItem('finmentor_budget')
 		const cachedCount = sessionStorage.getItem('finmentor_count')
@@ -69,16 +71,11 @@ export default function AICoachPage() {
 		if (cachedBudget) setMonthlyBudget(cachedBudget)
 		if (cachedCount) setExpenseCount(parseInt(cachedCount))
 
-		// B. BACKGROUND AUTH & DB SYNC
-		const initializeBackgroundSession = async () => {
+		// B. BACKGROUND DB SYNC: Just pull the usage limits now
+		const fetchLimits = async () => {
 			try {
-				const {
-					data: { user },
-				} = await supabase.auth.getUser()
-
-				if (user && isMounted) {
-					setCurrentUserId(user.id)
-					await syncUsageFromDB(user.id)
+				if (currentUserId && isMounted) {
+					await syncUsageFromDB(currentUserId)
 				}
 			} catch (e) {
 				console.error('Initialization failed:', e)
@@ -87,12 +84,12 @@ export default function AICoachPage() {
 			}
 		}
 
-		initializeBackgroundSession()
+		fetchLimits()
 
 		return () => {
 			isMounted = false
 		}
-	}, []) // <-- Empty array ensures this only ever runs once per mount
+	}, [currentUserId]) // <-- Depends on currentUserId, which triggers instantly
 
 	// 2. ANALYZE (With Explicit Cache Revalidation)
 	const handleAnalyze = async () => {

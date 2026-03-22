@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { clearCache } from '@/app/actions'
 
 interface DeleteProps {
 	id: string
@@ -30,9 +29,6 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 			const { error } = await supabase.from('goal_contributions').delete().eq('id', id)
 
 			if (error) throw error
-
-			// 1. Clear the cache so the server-side fetch in goals/page.tsx gets fresh data
-			await clearCache('/goals')
 
 			// 2. Refresh the UI so the GoalCard re-calculates the sum without this row
 			router.refresh()

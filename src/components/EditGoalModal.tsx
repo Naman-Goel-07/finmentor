@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { clearCache } from '@/app/actions'
 
 interface EditGoalProps {
 	goal: {
@@ -47,7 +46,6 @@ export default function EditGoalModal({ goal }: EditGoalProps) {
 			if (!res.ok) throw new Error(data.error || 'Failed to update goal')
 
 			setIsOpen(false)
-			await clearCache('/goals')
 			router.refresh()
 		} catch (err: any) {
 			setError(err.message)

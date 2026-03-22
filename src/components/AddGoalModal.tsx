@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Plus, X, Target } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { clearCache } from '@/app/actions'
 
 export default function AddGoalModal() {
 	const [isOpen, setIsOpen] = useState(false)
@@ -44,7 +43,6 @@ export default function AddGoalModal() {
 			setTargetAmount('')
 			setSavedAmount('')
 			setDeadline(new Date().toISOString().split('T')[0])
-			await clearCache('/goals')
 			router.refresh()
 		} catch (err: any) {
 			setError(err.message)

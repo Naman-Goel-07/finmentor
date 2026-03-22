@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Plus, X, Loader2, IndianRupee } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { clearCache } from '@/app/actions'
 
 export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: string; goalName: string; onClose: () => void }) {
 	const [amount, setAmount] = useState('')
@@ -34,7 +33,6 @@ export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: 
 			if (!res.ok) {
 				throw new Error(data.error || 'Failed to add saving')
 			}
-			await clearCache('/goals')
 			router.refresh()
 			onClose()
 		} catch (err: any) {

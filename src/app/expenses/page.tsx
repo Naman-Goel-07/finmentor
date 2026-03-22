@@ -4,7 +4,7 @@ import AddExpenseModal from '@/components/AddExpenseModal'
 import DeleteExpenseButton from '@/components/DeleteExpenseButton'
 import EditExpenseModal from '@/components/EditExpenseModal'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function ExpensesPage() {
 	// 1. Check Configuration

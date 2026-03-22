@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { X, Loader2, Pencil } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { clearCache } from '@/app/actions'
 
 interface EditContributionModalProps {
 	contribution: {
@@ -43,7 +42,6 @@ export default function EditContributionModal({ contribution, goalName }: EditCo
 			if (!res.ok) throw new Error(data.error || 'Failed to update contribution')
 
 			setIsOpen(false) // Close internally on success
-			await clearCache('/goals')
 			router.refresh()
 		} catch (err: any) {
 			setError(err.message)
