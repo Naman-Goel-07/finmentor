@@ -36,17 +36,22 @@ export default function AICoachPage() {
 
 	const supabase = createClient()
 
-	// 1. PERSISTENCE LOGIC: Load advice from localStorage on mount
+	// 1. HYDRATION: Load EVERYTHING from localStorage instantly on mount
 	useEffect(() => {
 		const savedAdvice = localStorage.getItem('finmentor_last_advice')
 		const savedBudget = localStorage.getItem('finmentor_last_budget')
 		const savedCount = localStorage.getItem('finmentor_last_expense_count')
+		const savedUsage = localStorage.getItem('finmentor_last_usage')
+		const savedReset = localStorage.getItem('finmentor_last_reset')
 
 		if (savedAdvice) setAdvice(savedAdvice)
 		if (savedBudget) setMonthlyBudget(savedBudget)
 		if (savedCount) setExpenseCount(parseInt(savedCount))
+		if (savedUsage) setUsageCount(parseInt(savedUsage)) // No more 0/10 flicker!
+		if (savedReset) setNextResetTime(savedReset)
 	}, [])
 
+	// 2. FETCH USAGE: Syncs DB with LocalStorage
 	const fetchUsage = useCallback(async () => {
 		try {
 			const {
@@ -69,12 +74,15 @@ export default function AICoachPage() {
 				.order('created_at', { ascending: true })
 
 			if (!countError) {
-				setUsageCount(count || 0)
-				if (data && data.length > 0) {
-					setNextResetTime(data[0].created_at)
-				} else {
-					setNextResetTime(null)
-				}
+				const freshCount = count || 0
+				const freshReset = data && data.length > 0 ? data[0].created_at : null
+
+				setUsageCount(freshCount)
+				setNextResetTime(freshReset)
+
+				// Update Persistence
+				localStorage.setItem('finmentor_last_usage', freshCount.toString())
+				if (freshReset) localStorage.setItem('finmentor_last_reset', freshReset)
 			}
 		} catch (err) {
 			console.error('Usage fetch failed:', err)
@@ -109,7 +117,7 @@ export default function AICoachPage() {
 		return () => clearInterval(timer)
 	}, [nextResetTime, usageCount, fetchUsage])
 
-	// Refresh usage but DON'T clear advice on page switch
+	// Background sync on page land
 	useEffect(() => {
 		fetchUsage()
 		router.refresh()
@@ -128,8 +136,6 @@ export default function AICoachPage() {
 	const handleAnalyze = async () => {
 		setLoading(true)
 		setError(null)
-		// Note: We don't clear advice here yet so the old one stays visible until the new one is ready
-		// or you can setAdvice(null) if you want a clean slate during loading.
 
 		try {
 			const {
@@ -144,7 +150,6 @@ export default function AICoachPage() {
 
 			if (expensesRes.error) throw new Error(`DB Error: ${expensesRes.error.message}`)
 			const currentCount = expensesRes.data?.length || 0
-			setExpenseCount(currentCount)
 
 			const response = await fetch('/api/ai-coach', {
 				method: 'POST',
@@ -174,9 +179,9 @@ export default function AICoachPage() {
 		}
 	}
 
-	// Helper to save to state AND localStorage
 	const updateStoredAdvice = (newAdvice: string, budget: string, count: number) => {
 		setAdvice(newAdvice)
+		setExpenseCount(count)
 		localStorage.setItem('finmentor_last_advice', newAdvice)
 		localStorage.setItem('finmentor_last_budget', budget)
 		localStorage.setItem('finmentor_last_expense_count', count.toString())
@@ -192,12 +197,13 @@ export default function AICoachPage() {
 		<div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-4 py-8">
 			<header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
 				<div>
-					<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+					<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent leading-none pb-2">
 						AI Coach
 					</h1>
 					<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
 				</div>
 
+				{/* USAGE METER UI */}
 				<div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl backdrop-blur-sm min-w-[220px]">
 					<div className="flex justify-between items-center mb-2">
 						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -248,7 +254,7 @@ export default function AICoachPage() {
 			)}
 
 			{loading && (
-				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
+				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm animate-in fade-in">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
 				</div>
@@ -258,14 +264,14 @@ export default function AICoachPage() {
 				<div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
 					<div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60">
 						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-							<RotateCcw size={14} className="text-purple-400" /> Cached Report
+							<RotateCcw size={14} className="text-purple-400" /> Latest Session
 						</p>
 						<button
 							onClick={handleAnalyze}
 							disabled={usageCount >= DAILY_LIMIT}
 							className="text-xs font-black text-purple-400 uppercase hover:text-purple-300 transition-colors disabled:opacity-30"
 						>
-							Run New Audit →
+							Refresh Audit →
 						</button>
 					</div>
 
@@ -292,7 +298,7 @@ export default function AICoachPage() {
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 transition-transform group-hover:scale-110`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
 								>
 									<stat.icon size={24} />
 								</div>
