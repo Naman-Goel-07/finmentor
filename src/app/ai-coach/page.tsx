@@ -51,7 +51,7 @@ export default function AICoachPage() {
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', user.id).eq('is_archived', false),
 			])
 
-			if (expensesRes.error) throw new Error(`Expenses DB Error: ${expensesRes.error.message}`)
+			if (expensesRes.error) throw new Error(`DB Error: ${expensesRes.error.message}`)
 			setExpenseCount(expensesRes.data?.length || 0)
 
 			const response = await fetch('/api/ai-coach', {
@@ -64,23 +64,26 @@ export default function AICoachPage() {
 				}),
 			})
 
-			// CRITICAL FIX: Check if response is JSON to prevent the "Stuck Loading" crash
+			// 🚨 DIAGNOSTIC CHECK: If server crashes, it often returns HTML. response.json() will fail here.
 			const contentType = response.headers.get('content-type')
 			if (!contentType || !contentType.includes('application/json')) {
-				const rawBody = await response.text()
-				console.error('Non-JSON Response received:', rawBody)
-				throw new Error(`Server Error: Received ${response.status}. Make sure your folder is 'app/api/ai-coach/route.ts'`)
+				const errorHtml = await response.text()
+				console.error('SERVER CRASHED WITH HTML:', errorHtml) // Check console to see the Vercel error page
+				throw new Error(`Server returned status ${response.status}. Check Network tab for details.`)
 			}
 
 			const data = await response.json()
-			if (!response.ok) throw new Error(data.error || 'Failed to analyze.')
+
+			if (!response.ok) {
+				console.error('API Error details:', data)
+				throw new Error(data.details || data.error || 'AI Coach failed to respond.')
+			}
 
 			setAdvice(data.advice)
 		} catch (err: any) {
-			console.error('AI Coach Frontend Error:', err.message)
+			console.error('AI Coach Frontend Error:', err)
 			setError(err.message)
 		} finally {
-			// This line is now guaranteed to run
 			setLoading(false)
 		}
 	}
@@ -91,7 +94,7 @@ export default function AICoachPage() {
 				<h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
 					AI Coach
 				</h1>
-				<p className="text-slate-400 mt-2 font-medium italic">Personalized financial intervention by Gemini.</p>
+				<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
 			</header>
 
 			{!advice && !loading && (
@@ -111,8 +114,8 @@ export default function AICoachPage() {
 						<input
 							type="number"
 							value={monthlyBudget}
-							onChange={(e) => setMonthlyBudget(e.target.value)}
 							onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
+							onChange={(e) => setMonthlyBudget(e.target.value)}
 							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all hover:bg-slate-800/80"
 						/>
 					</div>
@@ -138,8 +141,8 @@ export default function AICoachPage() {
 				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4 animate-in zoom-in duration-300">
 					<AlertCircle size={24} className="shrink-0" />
 					<div>
-						<p className="font-bold">Coach is stuck: {error}</p>
-						<p className="text-xs opacity-60">Check the browser console (F12) for more details.</p>
+						<p className="font-bold">Error: {error}</p>
+						<p className="text-[10px] opacity-60">Look at browser console for raw server response.</p>
 					</div>
 				</div>
 			)}
