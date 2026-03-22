@@ -56,53 +56,43 @@ export default function AICoachPage() {
 		}
 	}
 
-	// 1. ONE-TIME INIT (Instant Local Hydration)
+	// 1. INSTANT INIT (No Network Waiting)
 	useEffect(() => {
 		let isMounted = true
 
-		const initializeSession = async () => {
-			try {
-				// INSTANT CHECK: Read local session first (no network delay)
-				const {
-					data: { session },
-				} = await supabase.auth.getSession()
-				let user = session?.user
+		// A. INSTANT UI HYDRATION: Read cache immediately, ignoring Auth speed
+		const cachedAdvice = sessionStorage.getItem('finmentor_advice')
+		const cachedBudget = sessionStorage.getItem('finmentor_budget')
+		const cachedCount = sessionStorage.getItem('finmentor_count')
 
-				// FALLBACK: If local session is missing, try network
-				if (!user) {
-					const { data } = await supabase.auth.getUser()
-					user = data?.user
-				}
+		if (cachedAdvice) setAdvice(cachedAdvice)
+		if (cachedBudget) setMonthlyBudget(cachedBudget)
+		if (cachedCount) setExpenseCount(parseInt(cachedCount))
+
+		// B. BACKGROUND AUTH & DB SYNC
+		const initializeBackgroundSession = async () => {
+			try {
+				const {
+					data: { user },
+				} = await supabase.auth.getUser()
 
 				if (user && isMounted) {
 					setCurrentUserId(user.id)
-
-					// 1. Pull active report from temporary session cache instantly
-					const cachedAdvice = sessionStorage.getItem(`finmentor_advice_${user.id}`)
-					const cachedBudget = sessionStorage.getItem(`finmentor_budget_${user.id}`)
-					const cachedCount = sessionStorage.getItem(`finmentor_count_${user.id}`)
-
-					if (cachedAdvice) setAdvice(cachedAdvice)
-					if (cachedBudget) setMonthlyBudget(cachedBudget)
-					if (cachedCount) setExpenseCount(parseInt(cachedCount))
-
-					// 2. Fetch fresh usage count from DB (DO NOT AWAIT - let UI render immediately)
-					syncUsageFromDB(user.id)
+					await syncUsageFromDB(user.id)
 				}
 			} catch (e) {
 				console.error('Initialization failed:', e)
 			} finally {
-				// Unlock UI instantly, regardless of network speed
-				if (isMounted) setIsReady(true)
+				if (isMounted) setIsReady(true) // Unlocks the UI
 			}
 		}
 
-		initializeSession()
+		initializeBackgroundSession()
 
 		return () => {
 			isMounted = false
 		}
-	}, [supabase])
+	}, []) // <-- Empty array ensures this only ever runs once per mount
 
 	// 2. ANALYZE (With Explicit Cache Revalidation)
 	const handleAnalyze = async () => {
@@ -136,10 +126,10 @@ export default function AICoachPage() {
 			setAdvice(data.advice)
 			setExpenseCount(currentCount)
 
-			// Update Session Cache completely
-			sessionStorage.setItem(`finmentor_advice_${currentUserId}`, data.advice)
-			sessionStorage.setItem(`finmentor_budget_${currentUserId}`, monthlyBudget)
-			sessionStorage.setItem(`finmentor_count_${currentUserId}`, currentCount.toString())
+			// Update Session Cache (Global keys)
+			sessionStorage.setItem('finmentor_advice', data.advice)
+			sessionStorage.setItem('finmentor_budget', monthlyBudget)
+			sessionStorage.setItem('finmentor_count', currentCount.toString())
 
 			// EXPLICIT REVALIDATION: Pull exact usage from DB
 			await syncUsageFromDB(currentUserId)
@@ -150,14 +140,12 @@ export default function AICoachPage() {
 		}
 	}
 
-	// Wipes UI and Cache
+	// Wipes UI and Cache completely
 	const clearActiveAudit = () => {
 		setAdvice(null)
-		if (currentUserId) {
-			sessionStorage.removeItem(`finmentor_advice_${currentUserId}`)
-			sessionStorage.removeItem(`finmentor_budget_${currentUserId}`)
-			sessionStorage.removeItem(`finmentor_count_${currentUserId}`)
-		}
+		sessionStorage.removeItem('finmentor_advice')
+		sessionStorage.removeItem('finmentor_budget')
+		sessionStorage.removeItem('finmentor_count')
 	}
 
 	// Countdown Timer logic
@@ -187,7 +175,7 @@ export default function AICoachPage() {
 		return () => clearInterval(timer)
 	}, [nextResetTime, usageCount, currentUserId])
 
-	// Cycler for loading messages
+	// Cycler for loading jokes
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -197,15 +185,6 @@ export default function AICoachPage() {
 		}
 		return () => clearInterval(interval)
 	}, [loading])
-
-	if (!isReady) {
-		return (
-			<div className="flex flex-col items-center justify-center min-h-[60vh]">
-				<Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
-				<p className="text-slate-400 font-medium animate-pulse text-xs uppercase tracking-widest">Initializing Protocol...</p>
-			</div>
-		)
-	}
 
 	return (
 		<div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-4 py-8">
@@ -223,7 +202,9 @@ export default function AICoachPage() {
 							<Activity size={12} className="text-purple-400" /> Daily Limit
 						</span>
 						<span className="text-xs font-bold text-white flex items-center gap-2">
-							{usageCount}/{DAILY_LIMIT}
+							{/* TINY SPINNER: Shows here instead of blocking the screen */}
+							{!isReady && <Loader2 size={12} className="animate-spin text-purple-400" />}
+							{isReady && `${usageCount}/${DAILY_LIMIT}`}
 						</span>
 					</div>
 					<div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-2">
