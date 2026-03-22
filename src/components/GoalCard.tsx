@@ -1,13 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, RotateCcw } from 'lucide-react'
+import { Target, Loader2, ChevronDown, ChevronUp, Archive, Trash2, TrendingUp, RotateCcw, Pencil } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { format } from 'date-fns'
-import AddSavingModal from './AddSavingModal'
+import AddContributionModal from './AddContributionModal'
 import DeleteContributionButton from './DeleteContributionButton'
 import GoalSavingsChart from './GoalSavingsChart'
+import EditGoalModal from './EditGoalModal'
+// 1. IMPORT THE EDIT CONTRIBUTION MODAL
+import EditContributionModal from './EditContributionModal'
 
 export default function GoalCard({ goal }: { goal: any }) {
 	const router = useRouter()
@@ -18,8 +21,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 	const [refreshTrigger, setRefreshTrigger] = useState(0)
 
 	const savingsHistory = goal.goal_savings || []
-	const contributionsSum = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
-	const dynamicTotalSaved = (Number(goal.saved_amount) || 0) + contributionsSum
+	const dynamicTotalSaved = savingsHistory.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
 
 	const percent = goal.target_amount > 0 ? Math.min(Math.round((dynamicTotalSaved / goal.target_amount) * 100), 100) : 0
 	const remaining = Math.max(goal.target_amount - dynamicTotalSaved, 0)
@@ -56,13 +58,20 @@ export default function GoalCard({ goal }: { goal: any }) {
 		setLoadingAction(amount)
 		setErrorAmount(null)
 		try {
-			const res = await fetch('/api/update-goal', {
+			const res = await fetch('/api/add-goal-contribution', {
+				// 1. Updated URL
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id: goal.id, amountToAdd: amount }),
+				body: JSON.stringify({
+					goal_id: goal.id, // 2. Updated key: goal_id
+					amount: amount, // 3. Updated key: amount
+					note: 'Quick Save', // 4. Added a default note for history
+				}),
 			})
+
 			if (!res.ok) throw new Error('Update failed')
-			handleManualRefresh()
+
+			handleManualRefresh() // This triggers router.refresh() to show the new history row
 		} catch (err: any) {
 			setErrorAmount('Failed to update.')
 		} finally {
@@ -70,16 +79,12 @@ export default function GoalCard({ goal }: { goal: any }) {
 		}
 	}
 
-	// 2. Sends the toggle state to API
 	const handleGoalAction = async (action: 'archive' | 'delete') => {
 		if (action === 'delete' && !confirm('Delete this entire goal? History will be lost!')) return
 
 		setLoadingAction(action)
 		try {
-			const body =
-				action === 'archive'
-					? { id: goal.id, is_archived: !goal.is_archived } // Toggle
-					: { id: goal.id }
+			const body = action === 'archive' ? { id: goal.id, is_archived: !goal.is_archived } : { id: goal.id }
 
 			const res = await fetch(`/api/${action}-goal`, {
 				method: 'POST',
@@ -97,14 +102,15 @@ export default function GoalCard({ goal }: { goal: any }) {
 
 	return (
 		<>
-			{showSavingModal && <AddSavingModal goalId={goal.id} goalName={goal.goal_name} onClose={() => setShowSavingModal(false)} />}
+			{showSavingModal && <AddContributionModal goalId={goal.id} goalName={goal.goal_name} onClose={() => setShowSavingModal(false)} />}
 			<div
 				className={clsx(
 					'bg-white p-4 md:p-6 rounded-3xl shadow-sm border flex flex-col transition-all duration-300 w-full group',
 					isCompleted ? 'border-green-200 bg-green-50/10' : 'border-gray-100',
-					goal.is_archived && 'opacity-75 grayscale-[0.5]', // Visual cue for archived items
+					goal.is_archived && 'opacity-75 grayscale-[0.5]',
 				)}
 			>
+				{/* CARD HEADER */}
 				<div className="flex justify-between items-start mb-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
 					<div className="flex items-center gap-3">
 						<div
@@ -130,6 +136,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 					<button className="text-gray-400 hover:text-gray-600 p-1">{expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</button>
 				</div>
 
+				{/* PROGRESS SECTION */}
 				<div className="pt-2">
 					<div className="flex justify-between text-sm mb-2 items-end">
 						<div>
@@ -161,16 +168,16 @@ export default function GoalCard({ goal }: { goal: any }) {
 					</div>
 				</div>
 
+				{/* EXPANDED SECTION */}
 				{expanded && (
 					<div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4">
 						<GoalSavingsChart savings={savingsHistory} refreshTrigger={refreshTrigger} />
 
-						{/* 3. SHOW ACTIONS FOR ALL GOALS, NOT JUST COMPLETED */}
 						<div className="flex gap-2 mb-6 mt-6">
 							<button
 								onClick={() => handleGoalAction('archive')}
 								disabled={loadingAction === 'archive'}
-								className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2 disabled:opacity-50"
+								className="flex-1 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 flex justify-center items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
 							>
 								{loadingAction === 'archive' ? (
 									<Loader2 size={14} className="animate-spin" />
@@ -184,10 +191,15 @@ export default function GoalCard({ goal }: { goal: any }) {
 									</>
 								)}
 							</button>
+
+							<div className="flex-1 h-9">
+								<EditGoalModal goal={goal} />
+							</div>
+
 							<button
 								onClick={() => handleGoalAction('delete')}
 								disabled={loadingAction === 'delete'}
-								className="flex-1 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 flex justify-center items-center gap-2 disabled:opacity-50"
+								className="flex-1 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 flex justify-center items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
 							>
 								{loadingAction === 'delete' ? (
 									<Loader2 size={14} className="animate-spin" />
@@ -202,7 +214,7 @@ export default function GoalCard({ goal }: { goal: any }) {
 						{!isCompleted && !goal.is_archived && (
 							<div className="mb-6">
 								<div className="flex justify-between items-center mb-3">
-									<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Save</p>
+									<p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Contribution</p>
 									<button onClick={() => setShowSavingModal(true)} className="text-[10px] font-bold text-blue-600 hover:underline">
 										Custom Amount
 									</button>
@@ -232,19 +244,23 @@ export default function GoalCard({ goal }: { goal: any }) {
 											className="group/item flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-100 transition-all"
 										>
 											<div className="flex flex-col">
-												<span className="text-xs font-bold text-gray-800">{entry.note || 'Saved amount'}</span>
+												<span className="text-xs font-bold text-gray-800">{entry.note || 'Contribution'}</span>
 												<span className="text-[10px] text-gray-400 font-medium">
 													{format(new Date(entry.created_at), 'dd MMM, yyyy')}
 												</span>
 											</div>
 											<div className="flex items-center gap-3">
 												<span className="text-xs font-black text-green-600">+₹{entry.amount.toLocaleString()}</span>
+
+												{/* 2. INSERT EDIT CONTRIBUTION MODAL HERE */}
+												<EditContributionModal contribution={entry} goalName={goal.goal_name} />
+
 												<DeleteContributionButton id={entry.id} onSuccess={handleManualRefresh} />
 											</div>
 										</div>
 									))
 								) : (
-									<p className="text-xs text-gray-400 italic text-center py-4">No records found.</p>
+									<p className="text-xs text-gray-400 italic text-center py-4">No contributions found.</p>
 								)}
 							</div>
 						</div>

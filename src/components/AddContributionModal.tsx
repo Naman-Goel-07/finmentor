@@ -17,15 +17,14 @@ export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: 
 		setError('')
 
 		try {
-			const res = await fetch('/api/update-goal', {
+			const res = await fetch('/api/add-goal-contribution', {
+				// 1. Updated URL
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					id: goalId, // API expects 'id'
-					amountToAdd: parseFloat(amount), // API expects 'amountToAdd'
-					note: note || 'Manual Contribution', // Optional: add note to your API later
+					goal_id: goalId, // 2. Updated key: goal_id
+					amount: parseFloat(amount), // 3. Updated key: amount
+					note: note || 'Manual Contribution',
 				}),
 			})
 
@@ -34,7 +33,6 @@ export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: 
 			if (!res.ok) {
 				throw new Error(data.error || 'Failed to add saving')
 			}
-
 			router.refresh()
 			onClose()
 		} catch (err: any) {
@@ -78,6 +76,8 @@ export default function AddSavingModal({ goalId, goalName, onClose }: { goalId: 
 								autoFocus
 								value={amount}
 								onChange={(e) => setAmount(e.target.value)}
+								// Prevent "e", "E", "+", and "-"
+								onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 								className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-lg font-semibold text-gray-900"
 								placeholder="0.00"
 							/>

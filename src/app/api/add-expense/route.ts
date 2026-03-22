@@ -1,7 +1,11 @@
-import supabase from "@/lib/supabaseClient"
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
+
     const body = await req.json()
     const { amount, category, note, date } = body
 
@@ -14,6 +18,7 @@ export async function POST(req: Request) {
       .from("expenses")
       .insert([
         {
+          user_id: user.id,
           amount: parseFloat(amount),
           category,
           note,

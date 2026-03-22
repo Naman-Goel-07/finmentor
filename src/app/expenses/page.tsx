@@ -1,9 +1,10 @@
 import { AlertCircle, Plus } from 'lucide-react'
-import supabase from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/server'
 import AddExpenseModal from '@/components/AddExpenseModal'
 import DeleteExpenseButton from '@/components/DeleteExpenseButton'
+import EditExpenseModal from '@/components/EditExpenseModal'
 
-export const revalidate = 0 // Ensures the page always fetches fresh data
+export const dynamic = 'force-dynamic'
 
 export default async function ExpensesPage() {
 	// 1. Check Configuration
@@ -16,12 +17,25 @@ export default async function ExpensesPage() {
 
 	// 2. Fetch Data
 	if (!isMissingSupabase) {
-		const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false })
+		const supabase = await createClient()
 
-		if (error) {
-			dbError = error.message
-		} else if (data) {
-			expenses = data
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser()
+
+			if (user) {
+				const { data, error } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+
+				if (error) {
+					dbError = error.message
+				} else if (data) {
+					expenses = data
+				}
+			}
+		} catch (err: any) {
+			dbError = 'Network connection failed. Check your Supabase URL.'
+			console.error('Expenses Server Fetch Error:', err)
 		}
 	}
 
@@ -54,15 +68,23 @@ export default async function ExpensesPage() {
 			)}
 
 			{/* TABLE SECTION */}
-			<section className="bg-slate-900/50 rounded-3xl shadow-sm border border-slate-800/60 overflow-hidden backdrop-blur-sm">
+			<section
+				className={`bg-slate-900/50 rounded-3xl backdrop-blur-sm transition-all duration-300 
+                    ${isEmptyDatabase ? 'border-2 border-dashed border-slate-700/60' : 'border border-solid border-slate-800/60 shadow-sm'}`}
+			>
 				{isEmptyDatabase ? (
-					<div className="flex flex-col items-center justify-center p-20 text-center">
-						<div className="bg-slate-800 p-6 rounded-full mb-6">
-							<Plus size={40} className="text-slate-500" />
+					<div className="flex flex-col items-center justify-center p-20 text-center relative group">
+						<div className="absolute inset-0 rounded-3xl bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+						<div className="bg-emerald-500/10 p-6 rounded-full mb-6 border border-emerald-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
+							<Plus size={40} className="text-emerald-400" />
 						</div>
-						<h3 className="text-2xl font-bold text-white mb-2 tracking-tight">No expenses yet</h3>
-						<p className="text-slate-400 max-w-sm mb-8 font-medium italic">Add your first transaction to get started.</p>
-						<AddExpenseModal />
+						<h3 className="text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight z-10 relative">No expenses yet</h3>
+						<p className="text-slate-400 max-w-md mb-10 font-medium text-[15px] leading-relaxed z-10 relative">
+							Start by adding your first expense below.
+						</p>
+						<div className="z-10 relative shadow-emerald-500/10 shadow-2xl rounded-xl">
+							<AddExpenseModal />
+						</div>
 					</div>
 				) : (
 					<div className="overflow-x-auto w-full">
@@ -73,7 +95,7 @@ export default async function ExpensesPage() {
 									<th className="py-5 px-8">Category</th>
 									<th className="py-5 px-8">Note</th>
 									<th className="py-5 px-8 text-right">Amount</th>
-									<th className="py-5 px-6 w-16 text-center">Actions</th>
+									<th className="py-5 px-6 w-32 text-center">Actions</th> {/* Widened for 2 buttons */}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-slate-800/40">
@@ -92,7 +114,10 @@ export default async function ExpensesPage() {
 											₹{expense.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
 										</td>
 										<td className="py-5 px-6 text-center">
-											<DeleteExpenseButton id={expense.id} />
+											<div className="flex items-center justify-center gap-1">
+												<EditExpenseModal expense={expense} />
+												<DeleteExpenseButton id={expense.id} />
+											</div>
 										</td>
 									</tr>
 								))}

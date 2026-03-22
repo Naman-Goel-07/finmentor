@@ -1,9 +1,8 @@
 'use client'
 
-import { X, Loader2 } from 'lucide-react'
-import supabase from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { X, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation' // We use this to refresh the page
 
 interface DeleteProps {
 	id: string
@@ -15,24 +14,39 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 	const [isDeleting, setIsDeleting] = useState(false)
 
 	const handleDelete = async (e: React.MouseEvent) => {
-		// Prevents the GoalCard from toggling/expanding
 		e.stopPropagation()
+
+		if (!window.confirm('Are you sure you want to remove this contribution?')) {
+			return
+		}
 
 		setIsDeleting(true)
 
 		try {
-			const { error } = await supabase.from('goal_contributions').delete().eq('id', id)
+			// FIX: Call your API route instead of the Supabase client directly
+			const response = await fetch('/api/delete-goal-contribution', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ id: id }),
+			})
 
-			if (error) throw error
+			const result = await response.json()
 
-			// 1. Trigger the local nudge (updates the Graph & Slider math)
-			if (onSuccess) onSuccess()
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to delete')
+			}
 
-			// 2. Tell Next.js to re-fetch the server data
+			// 1. Tell Next.js to fetch fresh data for the page
 			router.refresh()
+
+			// 2. Run the success callback (usually to close a modal or show a toast)
+			if (onSuccess) onSuccess()
 		} catch (err: any) {
-			console.error('Delete failed:', err.message)
-			alert('Could not delete saving.')
+			console.error('Delete error:', err)
+			alert(err.message || 'Could not delete contribution.')
+		} finally {
 			setIsDeleting(false)
 		}
 	}
@@ -41,10 +55,17 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 		<button
 			onClick={handleDelete}
 			disabled={isDeleting}
-			className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover/item:opacity-100 disabled:opacity-100 cursor-pointer"
+			className={`
+        p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer
+        ${
+			isDeleting
+				? 'opacity-100' // Keep visible while deleting
+				: 'opacity-100 md:opacity-0 md:group-hover/item:opacity-100' // Normal hover logic
+		}
+    `}
 			title="Delete contribution"
 		>
-			{isDeleting ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <X size={14} />}
+			{isDeleting ? <Loader2 size={14} className="animate-spin text-red-500" /> : <X size={14} />}
 		</button>
 	)
 }

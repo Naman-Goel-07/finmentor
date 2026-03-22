@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import clsx from 'clsx'
+import { useAuth } from '@/context/AuthContext'
+import LogoutButton from './LogoutButton' // ✅ Import your new single-source-of-truth button
 
 const navItems = [
 	{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -17,28 +19,27 @@ const navItems = [
 interface SidebarProps {
 	isOpen?: boolean
 	setIsOpen?: (val: boolean) => void
-	userProfile: { name: string; avatar: string }
 }
 
-export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps) {
+export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 	const pathname = usePathname()
+	const { user } = useAuth()
 	const [isCollapsed, setIsCollapsed] = useState(false)
 
 	const getInitials = (name: string) => {
 		if (!name) return '??'
 		const parts = name.split(' ')
 		if (parts.length === 1) return name.slice(0, 2).toUpperCase()
-		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+		return (parts[0][0] + (parts[parts.length - 1]?.[0] || '')).toUpperCase()
 	}
 
 	return (
 		<div
 			className={clsx(
-				// Mobile and Desktop Display
-				'fixed inset-y-0 left-0 z-50 bg-[#020617] border-r border-slate-800/60 flex flex-col transition-all duration-300 ease-in-out w-64',
+				'fixed inset-y-0 left-0 z-50 bg-[#020617] border-r border-slate-800/60 flex flex-col transition-all duration-300 ease-in-out',
 				'md:relative md:translate-x-0 overflow-visible',
 				isOpen ? 'translate-x-0' : '-translate-x-full',
-				isCollapsed ? 'md:w-20' : 'md:w-64',
+				isCollapsed ? 'w-20' : 'w-64',
 			)}
 		>
 			{/* LOGO SECTION */}
@@ -51,13 +52,6 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 				{!isCollapsed && (
 					<div className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent tracking-tighter whitespace-nowrap">
 						FinMentor AI
-					</div>
-				)}
-
-				{/* Logo Tooltip (Visible when collapsed) */}
-				{isCollapsed && (
-					<div className="hidden md:block absolute left-16 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/logo:opacity-100 pointer-events-none transition-all translate-x-2 group-hover/logo:translate-x-0 whitespace-nowrap z-[70] shadow-lg">
-						FINMENTOR
 					</div>
 				)}
 
@@ -79,7 +73,7 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 			{/* NAVIGATION */}
 			<nav className="flex-1 space-y-1.5 p-4 overflow-y-auto custom-scrollbar overflow-x-hidden">
 				{navItems.map((item) => {
-					const isActive = pathname === item.href || (pathname === '/' && item.href === '/dashboard')
+					const isActive = pathname === item.href
 					return (
 						<Link
 							key={item.name}
@@ -93,27 +87,20 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 							)}
 						>
 							<item.icon className={clsx('w-5 h-5 shrink-0', isActive ? 'text-blue-400' : 'group-hover:text-slate-100')} />
+							{!isCollapsed && <span className="font-semibold text-sm tracking-wide whitespace-nowrap">{item.name}</span>}
 
-							<span
-								className={clsx(
-									'font-semibold text-sm tracking-wide transition-opacity whitespace-nowrap',
-									isCollapsed ? 'hidden' : 'opacity-100',
-								)}
-							>
-								{item.name}
-							</span>
-
-							{/* IMPROVED TOOLTIP */}
 							{isCollapsed && (
-								<div className="hidden md:block absolute left-20 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform -translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[100] border border-slate-700 shadow-2xl font-medium">
+								<div className="hidden md:block absolute left-20 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform -translate-x-2 group-hover:translate-x-0 whitespace-nowrap z-[100] border border-slate-700 shadow-2xl">
 									{item.name}
-									{/* Small Arrow Pointer */}
 									<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45" />
 								</div>
 							)}
 						</Link>
 					)
 				})}
+
+				{/* ✅ LOGOUT BUTTON INJECTED HERE */}
+				<LogoutButton isCollapsed={isCollapsed} />
 			</nav>
 
 			{/* MINI PROFILE FOOTER */}
@@ -125,25 +112,13 @@ export default function Sidebar({ isOpen, setIsOpen, userProfile }: SidebarProps
 					)}
 				>
 					<div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden border border-slate-700">
-						{userProfile.avatar ? (
-							<img src={userProfile.avatar} alt="User" className="w-full h-full object-cover" />
-						) : (
-							getInitials(userProfile.name)
-						)}
+						{user?.full_name ? getInitials(user.full_name) : '??'}
 					</div>
 
 					{!isCollapsed && (
-						<div className="overflow-hidden whitespace-nowrap">
-							<p className="text-xs font-bold text-slate-200 truncate italic">{userProfile.name || 'User'}</p>
-							<p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">PRO PLAN</p>
-						</div>
-					)}
-
-					{/* Profile Tooltip */}
-					{isCollapsed && (
-						<div className="hidden md:block absolute left-16 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover/profile:opacity-100 pointer-events-none transition-all transform translate-x-2 group-hover/profile:translate-x-0 whitespace-nowrap z-[60] border border-slate-700 shadow-2xl font-medium">
-							{userProfile.name || 'Profile'}
-							<div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45" />
+						<div className="overflow-hidden whitespace-nowrap flex-1">
+							<p className="text-xs font-bold text-slate-200 truncate italic">{user?.full_name || 'FinMentor User'}</p>
+							{/* <p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-bold">PRO PLAN</p> */}
 						</div>
 					)}
 				</div>

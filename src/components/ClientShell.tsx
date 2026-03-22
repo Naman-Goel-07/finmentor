@@ -2,89 +2,106 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
-import { Menu, User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Menu, User, LogOut, ChevronDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import supabase from '@/lib/supabaseClient'
+import { usePathname } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
-const DEMO_USER_ID = '00000000-0000-0000-0000-000000000000'
+const supabase = createClient()
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [profileOpen, setProfileOpen] = useState(false)
-	const [profile, setProfile] = useState({ name: '', avatar: '' })
+	const [isMounted, setIsMounted] = useState(false)
+	const { user, loading, setUser } = useAuth()
+	const pathname = usePathname()
 
+	// 1. Hydration Guard: Set mounted state to true
 	useEffect(() => {
-		let channel: any
+		setIsMounted(true)
+	}, [])
 
-		async function getProfile() {
-			const { data: profileData, error } = await supabase.from('profiles').select('full_name').eq('id', DEMO_USER_ID).single()
+	const isAuthPage = pathname === '/login' || pathname === '/signup'
 
-			if (error) {
-				console.error('Supabase Fetch Error:', error.message)
-			}
+	// 2. Real-time Profile Sync
+	useEffect(() => {
+		if (!user || isAuthPage) return
 
-			if (profileData) {
-				setProfile({
-					name: profileData.full_name || '',
-					avatar: '',
-				})
-			}
-
-			channel = supabase
-				.channel(`profile-demo`)
-				.on(
-					'postgres_changes',
-					{
-						event: 'UPDATE',
-						schema: 'public',
-						table: 'profiles',
-						filter: `id=eq.${DEMO_USER_ID}`,
-					},
-					(payload) => {
-						if (payload?.new) {
-							setProfile({
-								name: payload.new.full_name || '',
-								avatar: '',
-							})
-						}
-					},
-				)
-				.subscribe()
-		}
-
-		getProfile()
+		const channel = supabase
+			.channel(`profile-update-${user.id}`)
+			.on(
+				'postgres_changes',
+				{
+					event: 'UPDATE',
+					schema: 'public',
+					table: 'profiles',
+					filter: `id=eq.${user.id}`,
+				},
+				(payload) => {
+					if (payload?.new && payload.new.full_name) {
+						setUser((prev) => (prev ? { ...prev, full_name: payload.new.full_name } : prev))
+					}
+				},
+			)
+			.subscribe()
 
 		return () => {
-			if (channel) {
-				supabase.removeChannel(channel)
-			}
+			supabase.removeChannel(channel)
 		}
-	}, [])
+	}, [user, setUser, isAuthPage])
+
+	// 3. Handle Auth Pages immediately
+	if (isAuthPage) return <div className="bg-[#020617] min-h-screen text-slate-200">{children}</div>
+
+	// 4. THE PRODUCTION HYDRATION STRATEGY
+	// We return the shell and children immediately. If we haven't "mounted" yet,
+	// we are seeing the Server-Side HTML. Once we mount, if loading is true,
+	// we still show the shell. This stops the "Dashboard -> Loading -> Dashboard" flick.
+	const firstName = user?.full_name?.trim().split(' ')[0] || 'User'
+
+	const handleLogout = async () => {
+		// 1. Immediately close UI elements
+		setProfileOpen(false)
+		setSidebarOpen(false)
+
+		try {
+			// 2. Trigger the cleanup (Don't await the Supabase call if it's hanging)
+			supabase.auth.signOut()
+
+			// 3. Call your internal API to clear the cookies
+			// We use a short timeout so we don't wait forever if the server is slow
+			await Promise.race([fetch('/api/auth/logout', { method: 'POST' }), new Promise((resolve) => setTimeout(resolve, 1000))])
+		} finally {
+			// 4. THE NUCLEAR OPTION: Hard reload to /login
+			// This clears the AuthContext state completely and bypasses the loader.
+			window.location.href = '/login'
+		}
+	}
 
 	return (
 		<div className="flex h-screen w-full relative bg-[#020617] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
-			{/* 1. SIDEBAR: Ensure Sidebar.tsx uses 'fixed' on mobile */}
-			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} userProfile={profile} />
+			<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-			{/* 2. MAIN CONTENT WRAPPER */}
-			{/* Added 'min-w-0' and 'w-full' to force it to ignore the sidebar's width on mobile */}
 			<div className="flex-1 flex flex-col h-screen min-w-0 w-full overflow-hidden relative">
 				<header className="bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/60 h-16 flex items-center shrink-0 z-30">
 					<div className="max-w-6xl mx-auto w-full px-4 md:px-8 flex items-center justify-between">
 						<div className="flex items-center gap-3">
 							<button
 								onClick={() => setSidebarOpen(true)}
+								aria-label="Open sidebar"
 								className="md:hidden text-slate-400 cursor-pointer p-2 hover:bg-slate-800 rounded-xl transition-all outline-none"
 							>
 								<Menu size={20} />
 							</button>
-							{/* Hide logo on desktop because it's in the sidebar */}
-							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor</h1>
+							<h1 className="font-bold text-xl text-white md:hidden tracking-tight">FinMentor AI</h1>
 						</div>
 
-						<div className="hidden md:block text-sm text-slate-400 font-medium italic">
-							{profile.name ? `Welcome back, ${profile.name.split(' ')[0]}! 👋` : 'Welcome back! 👋'}
+						{/* ✅ PRO TIP: Instead of a full screen loader, show a subtle sync indicator */}
+						<div className="hidden md:flex items-center gap-3">
+							{loading && <Loader2 size={14} className="animate-spin text-emerald-500 opacity-50" />}
+							<div className="text-sm text-slate-400 font-medium italic">Welcome back, {firstName}! 👋</div>
 						</div>
 
 						<div className="relative">
@@ -103,7 +120,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 									<div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
 									<div className="absolute right-0 mt-2 w-56 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 p-1.5 z-20 animate-in fade-in zoom-in duration-200">
 										<div className="px-3 py-2 border-b border-slate-800 mb-1">
-											<p className="text-sm font-bold text-white truncate">{profile.name || 'Demo User'}</p>
+											<p className="text-sm font-bold text-white truncate">{user?.full_name || user?.email || 'User'}</p>
 										</div>
 										<Link
 											href="/profile"
@@ -113,12 +130,12 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 											<User size={16} /> Profile Settings
 										</Link>
 										<div className="h-px bg-slate-800 my-1 mx-2" />
-										<Link
-											href="/"
+										<button
+											onClick={handleLogout}
 											className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer text-left font-medium"
 										>
-											<LogOut size={16} /> Reset Demo
-										</Link>
+											<LogOut size={16} /> Log Out
+										</button>
 									</div>
 								</>
 							)}
@@ -130,7 +147,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 					<div className="max-w-6xl mx-auto w-full p-4 md:p-8 min-h-full overflow-x-hidden">{children}</div>
 				</main>
 
-				{/* MOBILE OVERLAY: Dims the screen when sidebar is open */}
 				{sidebarOpen && (
 					<div
 						className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300"
