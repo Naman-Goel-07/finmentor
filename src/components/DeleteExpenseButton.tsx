@@ -1,14 +1,12 @@
 'use client'
 
 import { Trash2, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function DeleteExpenseButton({ id }: { id: string }) {
 	const router = useRouter()
 	const [isDeleting, setIsDeleting] = useState(false)
-	const supabase = createClient()
 
 	const handleDelete = async (e: React.MouseEvent) => {
 		e.preventDefault()
@@ -20,21 +18,25 @@ export default function DeleteExpenseButton({ id }: { id: string }) {
 		setIsDeleting(true)
 
 		try {
-			const { error } = await supabase.from('expenses').delete().eq('id', id)
+			// CALL YOUR API ROUTE
+			const response = await fetch('/api/delete-expense', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id }),
+			})
 
-			if (error) {
-				setIsDeleting(false)
-				console.error('Delete Error:', error.message)
-				alert(`Supabase Error: ${error.message}`)
-				return
+			const result = await response.json()
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to delete')
 			}
 
+			// Tell Next.js to refresh the data on the screen
 			router.refresh()
-		} catch (error) {
-			console.error('Unexpected Error:', error)
-			setIsDeleting(false)
+		} catch (error: any) {
+			console.error('Delete Error:', error.message)
+			alert(error.message)
 		} finally {
-			// Safety net
 			setIsDeleting(false)
 		}
 	}

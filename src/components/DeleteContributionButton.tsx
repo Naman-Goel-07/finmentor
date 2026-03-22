@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation' // We use this to refresh the page
 
 interface DeleteProps {
 	id: string
@@ -13,12 +12,10 @@ interface DeleteProps {
 export default function DeleteContributionButton({ id, onSuccess }: DeleteProps) {
 	const router = useRouter()
 	const [isDeleting, setIsDeleting] = useState(false)
-	const supabase = createClient()
 
 	const handleDelete = async (e: React.MouseEvent) => {
 		e.stopPropagation()
 
-		// Added a safety check to prevent accidental deletions
 		if (!window.confirm('Are you sure you want to remove this contribution?')) {
 			return
 		}
@@ -26,16 +23,30 @@ export default function DeleteContributionButton({ id, onSuccess }: DeleteProps)
 		setIsDeleting(true)
 
 		try {
-			const { error } = await supabase.from('goal_contributions').delete().eq('id', id)
+			// FIX: Call your API route instead of the Supabase client directly
+			const response = await fetch('/api/delete-goal-contribution', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ id: id }),
+			})
 
-			if (error) throw error
+			const result = await response.json()
 
-			// 2. Refresh the UI so the GoalCard re-calculates the sum without this row
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to delete')
+			}
+
+			// 1. Tell Next.js to fetch fresh data for the page
 			router.refresh()
 
+			// 2. Run the success callback (usually to close a modal or show a toast)
 			if (onSuccess) onSuccess()
 		} catch (err: any) {
-			alert('Could not delete contribution.')
+			console.error('Delete error:', err)
+			alert(err.message || 'Could not delete contribution.')
+		} finally {
 			setIsDeleting(false)
 		}
 	}
