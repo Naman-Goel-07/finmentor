@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import ReactMarkdown from 'react-markdown'
 
+// 1. Singleton Client: Prevents re-auth cycles on every render
+const supabase = createClient()
+
 const LOADING_MESSAGES = [
 	'Scanning for Zomato addiction...',
 	'Consulting the wealth spirits...',
@@ -16,7 +19,6 @@ const LOADING_MESSAGES = [
 const DAILY_LIMIT = 10
 
 export default function AICoachPage() {
-	const supabase = createClient()
 	const { user } = useAuth()
 	const currentUserId = user?.id
 
@@ -36,35 +38,39 @@ export default function AICoachPage() {
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
-	// REVALIDATION HELPER: Forces a fresh pull from the database
+	// REVALIDATION HELPER: Ensures the Auth Token is attached before querying
 	const syncUsageFromDB = async (userId: string) => {
 		try {
-			// 1. Force the client to recognize the session before the query
-			await supabase.auth.getSession()
+			// A. SESSION WARM-UP: Force the client to hydrate headers
+			const {
+				data: { session },
+			} = await supabase.auth.getSession()
+
+			// If session is still waking up, wait a tiny bit (Hydration Guard)
+			if (!session) await new Promise((resolve) => setTimeout(resolve, 500))
 
 			const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-			// Use the optimized 'head: true' approach like your backend
+
 			const {
 				count,
 				data,
 				error: dbError,
 			} = await supabase
 				.from('ai_logs')
-				.select('created_at', { count: 'exact' }) // Remove 'head: true' so we can get the reset time
+				.select('created_at', { count: 'exact' })
 				.eq('user_id', userId)
 				.eq('status_code', 200)
 				.gt('created_at', last24h)
 				.order('created_at', { ascending: true })
 
-			if (dbError) {
-				console.error('Supabase Query Error:', dbError.message)
-				return 0
-			}
+			if (dbError) throw dbError
 
 			const freshCount = count || 0
 			setUsageCount(freshCount)
 
-			// Ensure we handle the data properly
+			// Sync to cache to prevent flicker on refresh
+			sessionStorage.setItem('finmentor_usage', freshCount.toString())
+
 			if (data && data.length > 0) {
 				setNextResetTime(data[0].created_at)
 			} else {
@@ -78,44 +84,40 @@ export default function AICoachPage() {
 		}
 	}
 
-	// 1. BOOTSTRAP: Instant Hydration & Usage Sync
+	// 1. BOOTSTRAP: Load Cache + Sync DB
 	useEffect(() => {
 		let isMounted = true
 
 		const initializeCoach = async () => {
-			// A. INSTANT UI HYDRATION: Read cache immediately
+			// A. INSTANT UI HYDRATION: Read all caches
 			const cachedAdvice = sessionStorage.getItem('finmentor_advice')
 			const cachedBudget = sessionStorage.getItem('finmentor_budget')
 			const cachedCount = sessionStorage.getItem('finmentor_count')
+			const cachedUsage = sessionStorage.getItem('finmentor_usage')
 
 			if (cachedAdvice) setAdvice(cachedAdvice)
 			if (cachedBudget) setMonthlyBudget(cachedBudget)
 			if (cachedCount) setExpenseCount(parseInt(cachedCount))
+			if (cachedUsage) setUsageCount(parseInt(cachedUsage))
 
-			// FIX: UNLOCK THE UI IMMEDIATELY
-			// This ensures the budget input and analyze button are usable right away.
+			// Unlock UI so user isn't stuck
 			if (isMounted) setIsReady(true)
 
-			// B. BACKGROUND SYNC: Pull usage limits without blocking the UI
-			try {
-				if (currentUserId) {
-					await syncUsageFromDB(currentUserId)
-				}
-			} catch (e) {
-				console.error('Background sync failed:', e)
+			// B. BACKGROUND SYNC: Only if user is logged in
+			if (currentUserId) {
+				await syncUsageFromDB(currentUserId)
 			}
 		}
 
 		initializeCoach()
-
 		return () => {
 			isMounted = false
 		}
-	}, [currentUserId]) // Re-runs instantly once AuthContext provides the user
+	}, [currentUserId])
 
-	// 2. ANALYZE (With Explicit Cache Revalidation)
+	// 2. ANALYZE
 	const handleAnalyze = async () => {
-		if (!currentUserId) return
+		if (!currentUserId || usageCount >= DAILY_LIMIT) return
 		setLoading(true)
 		setError(null)
 
@@ -141,16 +143,15 @@ export default function AICoachPage() {
 			const data = await response.json()
 			if (!response.ok && data.error !== 'DAILY_LIMIT_REACHED') throw new Error(data.details || data.error)
 
-			// Update UI
 			setAdvice(data.advice)
 			setExpenseCount(currentCount)
 
-			// Update Session Cache
+			// Update All Caches
 			sessionStorage.setItem('finmentor_advice', data.advice)
 			sessionStorage.setItem('finmentor_budget', monthlyBudget)
 			sessionStorage.setItem('finmentor_count', currentCount.toString())
 
-			// Force refresh of the counter
+			// Final sync to update the Daily Limit bar
 			await syncUsageFromDB(currentUserId)
 		} catch (err: any) {
 			setError(err.message)
@@ -164,6 +165,7 @@ export default function AICoachPage() {
 		sessionStorage.removeItem('finmentor_advice')
 		sessionStorage.removeItem('finmentor_budget')
 		sessionStorage.removeItem('finmentor_count')
+		sessionStorage.removeItem('finmentor_usage')
 	}
 
 	// Countdown Timer logic
@@ -273,69 +275,22 @@ export default function AICoachPage() {
 
 			{advice && !loading && (
 				<div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
-					<div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60">
-						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-							<RotateCcw size={14} className="text-purple-400" /> Active Audit Record
-						</p>
-						<button
-							onClick={handleAnalyze}
-							disabled={usageCount >= DAILY_LIMIT || !isReady}
-							className="text-xs font-black text-purple-400 hover:text-purple-300 transition-colors uppercase disabled:opacity-30"
-						>
-							Run New Audit →
-						</button>
-					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-						{[
-							{ label: 'Items Scanned', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-							{
-								label: 'Budget Limit',
-								value: `₹${Number(monthlyBudget).toLocaleString('en-IN')}`,
-								icon: Target,
-								color: 'text-amber-400',
-								bg: 'bg-amber-500/10',
-							},
-							{ label: 'Audit Status', value: 'Complete', icon: Sparkles, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-						].map((stat, i) => (
-							<div
-								key={i}
-								className="bg-slate-900/50 p-6 rounded-3xl border border-slate-800/60 flex items-start justify-between backdrop-blur-sm group hover:border-slate-700 transition-all duration-300"
-							>
-								<div>
-									<p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
-									<h3 className={`text-3xl font-bold ${stat.label === 'Audit Status' ? 'text-emerald-400 italic' : 'text-white'}`}>
-										{stat.value}
-									</h3>
-								</div>
-								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
-								>
-									<stat.icon size={24} />
-								</div>
-							</div>
-						))}
-					</div>
-
+					{/* Advice Content Area */}
 					<div className="bg-[#0f172a] rounded-3xl border border-slate-800/60 p-8 md:p-12 shadow-2xl relative overflow-hidden">
 						<div className="prose prose-invert max-w-none text-slate-300">
 							<ReactMarkdown
 								components={{
 									h1: ({ ...props }) => (
-										<h1 className="text-2xl font-bold mb-6 border-b border-slate-800 pb-4 text-white uppercase tracking-tight" {...props} />
+										<h1 className="text-2xl font-bold mb-6 border-b border-slate-800 pb-4 text-white uppercase" {...props} />
 									),
 									h2: ({ ...props }) => (
 										<h2 className="text-xl font-bold mt-8 mb-4 text-white border-l-4 border-purple-500 pl-3" {...props} />
 									),
 									li: ({ children }) => (
-										<div className="p-4 px-6 mb-2 flex items-start gap-3 bg-slate-800/30 rounded-2xl border border-slate-700/40 group hover:bg-slate-800/50 transition-all">
+										<div className="p-4 px-6 mb-2 flex items-start gap-3 bg-slate-800/30 rounded-2xl border border-slate-700/40">
 											<ChevronRight size={18} className="mt-1 text-purple-400 shrink-0" />
 											<span className="text-slate-100 font-bold">{children}</span>
 										</div>
-									),
-									strong: ({ ...props }) => <strong className="font-extrabold text-white bg-purple-500/20 px-1 rounded" {...props} />,
-									blockquote: ({ ...props }) => (
-										<div className="bg-slate-950/60 text-slate-300 p-6 my-6 italic rounded-2xl border-l-8 border-purple-500" {...props} />
 									),
 								}}
 							>
@@ -346,16 +301,9 @@ export default function AICoachPage() {
 							<button onClick={clearActiveAudit} className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors">
 								Clear This Report
 							</button>
-							<span className="text-[10px] text-slate-600 font-mono tracking-tighter uppercase">AI Protocol V2.5 Active</span>
+							<span className="text-[10px] text-slate-600 font-mono tracking-tighter uppercase font-bold">AI Protocol Active</span>
 						</div>
 					</div>
-				</div>
-			)}
-
-			{error && (
-				<div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 flex items-center gap-4 animate-in zoom-in">
-					<AlertCircle size={24} className="shrink-0" />
-					<p className="text-xs font-bold">{error}</p>
 				</div>
 			)}
 		</div>
