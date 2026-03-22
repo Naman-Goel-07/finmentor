@@ -95,6 +95,8 @@ export default function AddGoalModal() {
 									required
 									value={targetAmount}
 									onChange={(e) => setTargetAmount(e.target.value)}
+									// Prevent "e", "E", "+", and "-"
+									onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 									className={inputClasses}
 									placeholder="₹0.00"
 								/>
@@ -107,6 +109,8 @@ export default function AddGoalModal() {
 									step="0.01"
 									value={savedAmount}
 									onChange={(e) => setSavedAmount(e.target.value)}
+									// Prevent "e", "E", "+", and "-"
+									onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 									className={inputClasses}
 									placeholder="₹0.00"
 								/>

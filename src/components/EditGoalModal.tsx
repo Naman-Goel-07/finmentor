@@ -99,6 +99,8 @@ export default function EditGoalModal({ goal }: EditGoalProps) {
 									required
 									value={targetAmount}
 									onChange={(e) => setTargetAmount(e.target.value)}
+									// Prevent "e", "E", "+", and "-"
+									onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
 									className={inputClasses}
 									placeholder="₹0.00"
 								/>
