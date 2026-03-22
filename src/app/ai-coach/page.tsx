@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 const LOADING_MESSAGES = [
 	'Scanning for Zomato addiction...',
@@ -19,6 +21,10 @@ export default function AICoachPage() {
 	const router = useRouter()
 	const pathname = usePathname()
 	const supabase = createClient()
+	const isInitialMount = useRef(true)
+
+	// NEW: Reference for the PDF Capture
+	const reportRef = useRef<HTMLDivElement>(null)
 
 	// Auth & Identity States
 	const [authLoading, setAuthLoading] = useState(true)
@@ -26,6 +32,7 @@ export default function AICoachPage() {
 
 	// UI States
 	const [loading, setLoading] = useState(false)
+	const [isDownloading, setIsDownloading] = useState(false) // State for PDF button
 	const [advice, setAdvice] = useState<string | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [expenseCount, setExpenseCount] = useState(0)
@@ -37,10 +44,6 @@ export default function AICoachPage() {
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
-	/**
-	 * 1. FETCH USAGE
-	 * Syncs the database logs with local state and storage
-	 */
 	const fetchUsage = useCallback(
 		async (userId: string) => {
 			try {
@@ -61,114 +64,93 @@ export default function AICoachPage() {
 					const freshCount = count || 0
 					setUsageCount(freshCount)
 					setNextResetTime(data && data.length > 0 ? data[0].created_at : null)
-
-					// Keep local storage in sync with DB
 					localStorage.setItem(`finmentor_usage_${userId}`, freshCount.toString())
 				}
 			} catch (err) {
-				console.error('Usage fetch failed:', err)
+				console.error('Usage sync failed:', err)
 			}
 		},
 		[supabase],
 	)
 
-	/**
-	 * 2. SESSION RECOVERY (The Fix for the Reload Bug)
-	 * This effect runs first to identify the user before rendering the UI
-	 */
 	useEffect(() => {
 		const syncSession = async () => {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser()
+			try {
+				const {
+					data: { user },
+				} = await supabase.auth.getUser()
+				if (user) {
+					setCurrentUserId(user.id)
+					const savedAdvice = localStorage.getItem(`finmentor_advice_${user.id}`)
+					const savedUsage = localStorage.getItem(`finmentor_usage_${user.id}`)
+					const savedBudget = localStorage.getItem(`finmentor_budget_${user.id}`)
+					const savedCount = localStorage.getItem(`finmentor_count_${user.id}`)
 
-			if (user) {
-				setCurrentUserId(user.id)
+					if (savedAdvice) setAdvice(savedAdvice)
+					if (savedUsage) setUsageCount(parseInt(savedUsage))
+					if (savedBudget) setMonthlyBudget(savedBudget)
+					if (savedCount) setExpenseCount(parseInt(savedCount))
 
-				// Hydrate from local storage instantly
-				const savedAdvice = localStorage.getItem(`finmentor_advice_${user.id}`)
-				const savedUsage = localStorage.getItem(`finmentor_usage_${user.id}`)
-				const savedBudget = localStorage.getItem(`finmentor_budget_${user.id}`)
-				const savedCount = localStorage.getItem(`finmentor_count_${user.id}`)
-
-				if (savedAdvice) setAdvice(savedAdvice)
-				if (savedUsage) setUsageCount(parseInt(savedUsage))
-				if (savedBudget) setMonthlyBudget(savedBudget)
-				if (savedCount) setExpenseCount(parseInt(savedCount))
-
-				// Background sync with database
-				await fetchUsage(user.id)
+					fetchUsage(user.id)
+				}
+			} catch (e) {
+				console.error('Auth session sync failed:', e)
+			} finally {
+				setAuthLoading(false)
 			}
-			setAuthLoading(false)
 		}
-
 		syncSession()
 	}, [supabase, fetchUsage])
 
-	/**
-	 * 3. COUNTDOWN TIMER
-	 * Calculates time until the next roast slot opens up
-	 */
 	useEffect(() => {
-		if (!nextResetTime || usageCount < DAILY_LIMIT) {
-			setCountdown('')
-			return
-		}
-
-		const timer = setInterval(() => {
-			const resetDate = new Date(nextResetTime)
-			resetDate.setHours(resetDate.getHours() + 24)
-			const now = new Date()
-			const diff = resetDate.getTime() - now.getTime()
-
-			if (diff <= 0) {
-				setCountdown('')
-				if (currentUserId) fetchUsage(currentUserId)
-				clearInterval(timer)
-			} else {
-				const hours = Math.floor(diff / (1000 * 60 * 60))
-				const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-				const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-				setCountdown(`${hours}h ${minutes}m ${seconds}s`)
-			}
-		}, 1000)
-
-		return () => clearInterval(timer)
-	}, [nextResetTime, usageCount, fetchUsage, currentUserId])
-
-	// Background re-sync on navigation
-	useEffect(() => {
-		if (currentUserId) {
+		if (!authLoading && currentUserId) {
 			fetchUsage(currentUserId)
-			router.refresh()
+			if (!isInitialMount.current) {
+				router.refresh()
+			}
+			isInitialMount.current = false
 		}
-	}, [pathname, fetchUsage, router, currentUserId])
+	}, [pathname, fetchUsage, router, currentUserId, authLoading])
 
-	// Loading Message Cycler
-	useEffect(() => {
-		let interval: NodeJS.Timeout
-		if (loading) {
-			interval = setInterval(() => {
-				setLoadingMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length)
-			}, 3000)
+	// NEW: PDF Download Handler
+	const handleDownloadPDF = async () => {
+		if (!reportRef.current) return
+		setIsDownloading(true)
+
+		try {
+			const element = reportRef.current
+			const canvas = await html2canvas(element, {
+				scale: 2, // High resolution
+				backgroundColor: '#0f172a', // Slate-900 to match theme
+				useCORS: true,
+				logging: false,
+			})
+
+			const imgData = canvas.toDataURL('image/png')
+			const pdf = new jsPDF({
+				orientation: 'portrait',
+				unit: 'px',
+				format: [canvas.width / 2, canvas.height / 2], // Scale back down for standard size
+			})
+
+			pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2)
+			pdf.save(`FinMentor-Audit-${new Date().toISOString().split('T')[0]}.pdf`)
+		} catch (err) {
+			console.error('PDF Export failed:', err)
+		} finally {
+			setIsDownloading(false)
 		}
-		return () => clearInterval(interval)
-	}, [loading])
+	}
 
-	/**
-	 * 4. ANALYZE HANDLER
-	 */
 	const handleAnalyze = async () => {
 		if (!currentUserId) return
 		setLoading(true)
 		setError(null)
-
 		try {
 			const [expensesRes, goalsRes] = await Promise.all([
 				supabase.from('expenses').select('*').eq('user_id', currentUserId).order('date', { ascending: false }).limit(20),
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', currentUserId).eq('is_archived', false),
 			])
-
 			if (expensesRes.error) throw new Error(expensesRes.error.message)
 			const currentCount = expensesRes.data?.length || 0
 
@@ -181,16 +163,8 @@ export default function AICoachPage() {
 					goals: goalsRes.data,
 				}),
 			})
-
 			const data = await response.json()
-
-			if (!response.ok) {
-				if (data.error === 'DAILY_LIMIT_REACHED') {
-					updateStoredAdvice(currentUserId, data.advice, monthlyBudget, currentCount)
-					return
-				}
-				throw new Error(data.details || data.error)
-			}
+			if (!response.ok && data.error !== 'DAILY_LIMIT_REACHED') throw new Error(data.details || data.error)
 
 			updateStoredAdvice(currentUserId, data.advice, monthlyBudget, currentCount)
 		} catch (err: any) {
@@ -215,7 +189,6 @@ export default function AICoachPage() {
 		localStorage.removeItem(`finmentor_advice_${currentUserId}`)
 	}
 
-	// 5. RENDER GUARD: Prevent flickering during session sync
 	if (authLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -235,7 +208,6 @@ export default function AICoachPage() {
 					<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
 				</div>
 
-				{/* USAGE METER UI */}
 				<div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl backdrop-blur-sm min-w-[220px]">
 					<div className="flex justify-between items-center mb-2">
 						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -253,7 +225,7 @@ export default function AICoachPage() {
 					</div>
 					{countdown && (
 						<div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold animate-pulse">
-							<Clock size={10} /> Next slot in: {countdown}
+							<Clock size={10} /> {countdown}
 						</div>
 					)}
 				</div>
@@ -261,52 +233,51 @@ export default function AICoachPage() {
 
 			{!advice && !loading && (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm relative group transition-all duration-500 hover:border-slate-600/80">
-					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 					<Zap className="text-purple-400 mx-auto mb-6 transition-transform group-hover:scale-110" size={48} />
 					<h2 className="text-3xl font-extrabold text-white mb-6">Ready for an intervention? 🚀</h2>
-					<div className="mb-8 max-w-xs mx-auto">
-						<label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Budget (₹)</label>
-						<input
-							type="number"
-							value={monthlyBudget}
-							onChange={(e) => setMonthlyBudget(e.target.value)}
-							disabled={usageCount >= DAILY_LIMIT}
-							className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-center font-bold text-white text-xl focus:border-purple-500 transition-all disabled:opacity-30"
-						/>
-					</div>
+					<input
+						type="number"
+						value={monthlyBudget}
+						onChange={(e) => setMonthlyBudget(e.target.value)}
+						className="w-full max-w-[200px] px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl text-center font-bold text-white text-xl mb-6 focus:border-purple-500 outline-none"
+					/>
 					<button
 						onClick={handleAnalyze}
 						disabled={usageCount >= DAILY_LIMIT}
 						className="px-8 py-4 font-bold text-white bg-slate-900 border border-slate-700 hover:border-purple-500/50 rounded-xl transition-all flex items-center justify-center mx-auto gap-2 active:scale-95 disabled:opacity-30"
 					>
-						{usageCount >= DAILY_LIMIT ? `Locked: ${countdown}` : 'Analyze My Finances'}
-						<ChevronRight size={20} />
+						{usageCount >= DAILY_LIMIT ? `Locked: ${countdown}` : 'Analyze My Finances'} <ChevronRight size={20} />
 					</button>
 				</section>
-			)}
-
-			{loading && (
-				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
-					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
-					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
-				</div>
 			)}
 
 			{advice && !loading && (
 				<div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
 					<div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60">
 						<p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-							<RotateCcw size={14} className="text-purple-400" /> Report
+							<RotateCcw size={14} className="text-purple-400" /> Active Audit Record
 						</p>
-						<button
-							onClick={handleAnalyze}
-							disabled={usageCount >= DAILY_LIMIT}
-							className="text-xs font-black text-purple-400 uppercase hover:text-purple-300 transition-colors disabled:opacity-30"
-						>
-							Run New Audit →
-						</button>
+						<div className="flex gap-4">
+							{/* PDF DOWNLOAD BUTTON */}
+							<button
+								onClick={handleDownloadPDF}
+								disabled={isDownloading}
+								className="text-xs font-black text-blue-400 flex items-center gap-1.5 hover:text-blue-300 transition-colors disabled:opacity-50"
+							>
+								{isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+								SAVE PDF
+							</button>
+							<button
+								onClick={handleAnalyze}
+								disabled={usageCount >= DAILY_LIMIT}
+								className="text-xs font-black text-purple-400 hover:text-purple-300 transition-colors uppercase"
+							>
+								Run New Audit →
+							</button>
+						</div>
 					</div>
 
+					{/* Stats Grid */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						{[
 							{ label: 'Items Scanned', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
@@ -330,7 +301,7 @@ export default function AICoachPage() {
 									</h3>
 								</div>
 								<div
-									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 transition-transform group-hover:scale-110`}
+									className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-110`}
 								>
 									<stat.icon size={24} />
 								</div>
@@ -338,8 +309,9 @@ export default function AICoachPage() {
 						))}
 					</div>
 
-					<div className="bg-slate-900/50 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-sm p-8 md:p-12 shadow-2xl relative">
-						<div className="prose prose-invert max-w-none">
+					{/* PDF CONTAINER WRAPPER (Ref added here) */}
+					<div ref={reportRef} className="bg-slate-900 rounded-3xl border border-slate-800/60 p-8 md:p-12 shadow-2xl relative overflow-hidden">
+						<div className="prose prose-invert max-w-none text-slate-300">
 							<ReactMarkdown
 								components={{
 									h1: ({ ...props }) => (
@@ -350,7 +322,7 @@ export default function AICoachPage() {
 									),
 									li: ({ children }) => (
 										<div className="p-4 px-6 mb-2 flex items-start gap-3 bg-slate-800/30 rounded-2xl border border-slate-700/40 group hover:bg-slate-800/50 transition-all">
-											<ChevronRight size={18} className="mt-1 text-purple-400 shrink-0 group-hover:translate-x-1 transition-transform" />
+											<ChevronRight size={18} className="mt-1 text-purple-400 shrink-0" />
 											<span className="text-slate-100 font-bold">{children}</span>
 										</div>
 									),
@@ -373,10 +345,10 @@ export default function AICoachPage() {
 				</div>
 			)}
 
-			{error && (
-				<div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 flex items-center gap-4 animate-in zoom-in">
-					<AlertCircle size={24} className="shrink-0" />
-					<p className="text-xs font-bold">{error}</p>
+			{loading && (
+				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
+					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
+					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
 				</div>
 			)}
 		</div>
