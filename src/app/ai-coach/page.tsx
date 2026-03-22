@@ -56,25 +56,28 @@ export default function AICoachPage() {
 		}
 	}
 
-	// 1. ONE-TIME INIT (With Safety Fallback)
+	// 1. ONE-TIME INIT (Instant Local Hydration)
 	useEffect(() => {
 		let isMounted = true
 
-		// SAFETY NET: If Supabase hangs for more than 3 seconds, unlock the UI anyway.
-		const fallbackTimer = setTimeout(() => {
-			if (isMounted) setIsReady(true)
-		}, 3000)
-
 		const initializeSession = async () => {
 			try {
+				// INSTANT CHECK: Read local session first (no network delay)
 				const {
-					data: { user },
-				} = await supabase.auth.getUser()
+					data: { session },
+				} = await supabase.auth.getSession()
+				let user = session?.user
+
+				// FALLBACK: If local session is missing, try network
+				if (!user) {
+					const { data } = await supabase.auth.getUser()
+					user = data?.user
+				}
 
 				if (user && isMounted) {
 					setCurrentUserId(user.id)
 
-					// 1. Pull active report from temporary session cache
+					// 1. Pull active report from temporary session cache instantly
 					const cachedAdvice = sessionStorage.getItem(`finmentor_advice_${user.id}`)
 					const cachedBudget = sessionStorage.getItem(`finmentor_budget_${user.id}`)
 					const cachedCount = sessionStorage.getItem(`finmentor_count_${user.id}`)
@@ -83,14 +86,14 @@ export default function AICoachPage() {
 					if (cachedBudget) setMonthlyBudget(cachedBudget)
 					if (cachedCount) setExpenseCount(parseInt(cachedCount))
 
-					// 2. Fetch fresh usage count from DB to ensure accuracy
-					await syncUsageFromDB(user.id)
+					// 2. Fetch fresh usage count from DB (DO NOT AWAIT - let UI render immediately)
+					syncUsageFromDB(user.id)
 				}
 			} catch (e) {
 				console.error('Initialization failed:', e)
 			} finally {
-				clearTimeout(fallbackTimer) // Clear the safety net
-				if (isMounted) setIsReady(true) // Unlock UI instantly
+				// Unlock UI instantly, regardless of network speed
+				if (isMounted) setIsReady(true)
 			}
 		}
 
@@ -98,7 +101,6 @@ export default function AICoachPage() {
 
 		return () => {
 			isMounted = false
-			clearTimeout(fallbackTimer)
 		}
 	}, [supabase])
 
@@ -185,7 +187,7 @@ export default function AICoachPage() {
 		return () => clearInterval(timer)
 	}, [nextResetTime, usageCount, currentUserId])
 
-	// Cycler for loading jokes
+	// Cycler for loading messages
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -195,6 +197,15 @@ export default function AICoachPage() {
 		}
 		return () => clearInterval(interval)
 	}, [loading])
+
+	if (!isReady) {
+		return (
+			<div className="flex flex-col items-center justify-center min-h-[60vh]">
+				<Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
+				<p className="text-slate-400 font-medium animate-pulse text-xs uppercase tracking-widest">Initializing Protocol...</p>
+			</div>
+		)
+	}
 
 	return (
 		<div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-4 py-8">
@@ -212,9 +223,7 @@ export default function AICoachPage() {
 							<Activity size={12} className="text-purple-400" /> Daily Limit
 						</span>
 						<span className="text-xs font-bold text-white flex items-center gap-2">
-							{/* TINY SPINNER: Shows here instead of blocking the screen */}
-							{!isReady && <Loader2 size={12} className="animate-spin text-purple-400" />}
-							{isReady && `${usageCount}/${DAILY_LIMIT}`}
+							{usageCount}/{DAILY_LIMIT}
 						</span>
 					</div>
 					<div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-2">
