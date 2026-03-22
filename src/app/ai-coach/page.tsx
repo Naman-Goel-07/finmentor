@@ -25,14 +25,14 @@ export default function AICoachPage() {
 	const [monthlyBudget, setMonthlyBudget] = useState('10000')
 	const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
 
-	// Usage & Countdown States
+	// Meter & Timer States
 	const [usageCount, setUsageCount] = useState(0)
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
 	const supabase = createClient()
 
-	// 1. Fetch usage and the timestamp of the oldest roast in the stack
+	// 1. Fetch usage and the timestamp of the oldest roast in the rolling 24h stack
 	const fetchUsage = useCallback(async () => {
 		try {
 			const {
@@ -52,12 +52,15 @@ export default function AICoachPage() {
 				.eq('user_id', user.id)
 				.eq('status_code', 200)
 				.gt('created_at', last24h)
-				.order('created_at', { ascending: true }) // Oldest first
+				.order('created_at', { ascending: true }) // Get oldest roast first
 
 			if (!countError) {
 				setUsageCount(count || 0)
+				// nextResetTime is 24h after the OLDEST roast in the current last-24h window
 				if (data && data.length > 0) {
 					setNextResetTime(data[0].created_at)
+				} else {
+					setNextResetTime(null)
 				}
 			}
 		} catch (err) {
@@ -67,6 +70,7 @@ export default function AICoachPage() {
 
 	// 2. Countdown Timer Logic
 	useEffect(() => {
+		// We only need a countdown if they are AT or OVER the limit
 		if (!nextResetTime || usageCount < DAILY_LIMIT) {
 			setCountdown('')
 			return
@@ -81,7 +85,7 @@ export default function AICoachPage() {
 
 			if (diff <= 0) {
 				setCountdown('')
-				fetchUsage() // Refresh once time is up
+				fetchUsage() // Auto-refresh UI when a slot opens up
 				clearInterval(timer)
 			} else {
 				const hours = Math.floor(diff / (1000 * 60 * 60))
@@ -98,6 +102,7 @@ export default function AICoachPage() {
 		fetchUsage()
 	}, [fetchUsage])
 
+	// Cycle Loading Messages
 	useEffect(() => {
 		let interval: NodeJS.Timeout
 		if (loading) {
@@ -142,14 +147,14 @@ export default function AICoachPage() {
 			if (!response.ok) {
 				if (data.error === 'DAILY_LIMIT_REACHED') {
 					setAdvice(data.advice)
-					fetchUsage() // Refresh reset time
+					fetchUsage() // Refresh reset time immediately
 					return
 				}
-				throw new Error(data.details || data.error || 'AI Coach failed.')
+				throw new Error(data.details || data.error || 'AI Coach failed to respond.')
 			}
 
 			setAdvice(data.advice)
-			fetchUsage()
+			fetchUsage() // Update meter after success
 		} catch (err: any) {
 			setError(err.message)
 		} finally {
@@ -167,10 +172,11 @@ export default function AICoachPage() {
 					<p className="text-slate-400 mt-2 font-medium italic text-sm">Personalized financial intervention by Gemini.</p>
 				</div>
 
+				{/* USAGE METER UI */}
 				<div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl backdrop-blur-sm min-w-[220px]">
 					<div className="flex justify-between items-center mb-2">
 						<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-							<Activity size={12} className="text-purple-400" /> Daily Roasts
+							<Activity size={12} className="text-purple-400" /> Daily Limit
 						</span>
 						<span className="text-xs font-bold text-white">
 							{usageCount}/{DAILY_LIMIT}
@@ -182,7 +188,6 @@ export default function AICoachPage() {
 							style={{ width: `${Math.min((usageCount / DAILY_LIMIT) * 100, 100)}%` }}
 						/>
 					</div>
-					{/* COUNTDOWN UI */}
 					{countdown && (
 						<div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold animate-pulse">
 							<Clock size={10} /> Next slot in: {countdown}
@@ -194,6 +199,7 @@ export default function AICoachPage() {
 			{!advice && !loading && (
 				<section className="bg-slate-900/50 rounded-3xl shadow-sm border-2 border-dashed border-slate-700/60 p-12 md:p-16 text-center backdrop-blur-sm relative group transition-all duration-500 hover:border-slate-600/80">
 					<div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
 					<div className="w-20 h-20 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 shadow-inner z-10 relative transition-transform group-hover:scale-110 duration-500">
 						<Zap className="text-purple-400 fill-purple-500/10" size={32} />
 					</div>
@@ -229,11 +235,12 @@ export default function AICoachPage() {
 				<div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
 					<Loader2 className="animate-spin text-purple-400 mb-4" size={64} />
 					<p className="text-xl font-bold text-white mb-2">{LOADING_MESSAGES[loadingMsgIndex]}</p>
+					<p className="text-sm text-slate-500 font-medium italic">Running projections...</p>
 				</div>
 			)}
 
 			{error && (
-				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4">
+				<div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-6 mb-8 flex items-center gap-4 animate-in zoom-in duration-300">
 					<AlertCircle size={24} className="shrink-0" />
 					<div>
 						<p className="font-bold uppercase tracking-tight text-sm">Issue Found</p>
