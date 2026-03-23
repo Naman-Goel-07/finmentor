@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, IndianRupee, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '@/context/AuthContext'
-import LogoutButton from './LogoutButton' // ✅ Import your new single-source-of-truth button
+import LogoutButton from './LogoutButton'
 
 const navItems = [
 	{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -50,10 +50,24 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 				)}
 			>
 				{!isCollapsed && (
-					<div className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent tracking-tighter whitespace-nowrap">
-						FinMentor AI
-					</div>
-				)}
+					<div className="flex items-center font-bold text-xl tracking-tighter whitespace-nowrap select-none">
+                        <span className="bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
+                            FinMento
+                        </span>
+                        <IndianRupee 
+                            size={18} 
+                            className="text-indigo-400 stroke-[3px] -ml-0.5 mr-0.5" 
+                        />
+                        <span className="bg-gradient-to-r from-indigo-400 to-indigo-400 bg-clip-text text-transparent">
+                            AI
+                        </span>
+                    </div>
+                ) : (
+                    /* Mini Logo for Collapsed State */
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20 shadow-inner group-hover/logo:scale-110 transition-transform duration-300">
+                        <IndianRupee size={20} className="text-blue-400 stroke-[2.5px]" />
+                    </div>
+                )}
 
 				<button
 					onClick={() => setIsCollapsed(!isCollapsed)}
@@ -99,7 +113,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 					)
 				})}
 
-				{/* ✅ LOGOUT BUTTON INJECTED HERE */}
 				<LogoutButton isCollapsed={isCollapsed} />
 			</nav>
 
