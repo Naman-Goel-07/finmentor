@@ -49,34 +49,29 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 					isCollapsed ? 'justify-center px-0' : 'justify-between px-6',
 				)}
 			>
-				{!isCollapsed && (
+				{!isCollapsed ? (
 					<div className="flex items-center font-bold text-xl tracking-tighter whitespace-nowrap select-none">
-                        <span className="bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
-                            FinMento
-                        </span>
-                        <IndianRupee 
-                            size={18} 
-                            className="text-indigo-400 stroke-[3px] -ml-0.5 mr-0.5" 
-                        />
-                        <span className="bg-gradient-to-r from-indigo-400 to-indigo-400 bg-clip-text text-transparent">
-                            AI
-                        </span>
-                    </div>
-                ) : (
-                    /* Mini Logo for Collapsed State */
-                    <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20 shadow-inner group-hover/logo:scale-110 transition-transform duration-300">
-                        <IndianRupee size={20} className="text-blue-400 stroke-[2.5px]" />
-                    </div>
-                )}
+						<span className="bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">FinMento</span>
+						{/* The Rupee 'r' replacement */}
+						<IndianRupee size={18} className="text-indigo-400 stroke-[3px] -ml-0.5 mr-0.5" />
+						<span className="bg-gradient-to-r from-indigo-400 to-indigo-400 bg-clip-text text-transparent">AI</span>
+					</div>
+				) : (
+					/* Mini Logo for Collapsed State */
+					<div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20 shadow-inner group-hover/logo:scale-110 transition-transform duration-300">
+						<IndianRupee size={20} className="text-blue-400 stroke-[2.5px]" />
+					</div>
+				)}
 
+				{/* TOGGLE BUTTON */}
 				<button
 					onClick={() => setIsCollapsed(!isCollapsed)}
 					className={clsx(
 						'hidden md:flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800/50 transition-all cursor-pointer',
-						isCollapsed && 'mx-auto',
+						isCollapsed && 'absolute -right-3 top-1/2 -translate-y-1/2 bg-slate-900 border border-slate-800 rounded-full shadow-xl z-50',
 					)}
 				>
-					{isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+					{isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={20} />}
 				</button>
 
 				<button onClick={() => setIsOpen && setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white p-2">
