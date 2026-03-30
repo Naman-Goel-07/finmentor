@@ -2,7 +2,7 @@
 
 https://finmentor-eight.vercel.app/
 
-**FinMentor AI** is a high-energy, Gen-Z-focused financial intervention tool. Developed by Team **HarTime Error**, the platform transforms boring expense tracking into a personalized, "roast-style" coaching experience powered by Google Gemini.
+**FinMentor AI** is a high-energy, Gen-Z-focused financial intervention tool. Developed by Team **HarTime Error**, the platform transforms boring expense tracking into a personalized coaching experience powered by Google Gemini.
 Most financial apps are spreadsheets in disguise. **FinMentor AI** is different. It uses AI to analyze spending patterns, identify "Goal Killers", and give you the brutal honesty you need to actually hit your savings goals.
 
 ## ✨ Key Features
