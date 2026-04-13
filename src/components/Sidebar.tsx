@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, IndianRupee, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { LayoutDashboard, Receipt, Target, Sparkles, GraduationCap, X, IndianRupee, PanelLeftClose, PanelLeftOpen, Clapperboard } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '@/context/AuthContext'
 import LogoutButton from './LogoutButton'
@@ -14,6 +14,7 @@ const navItems = [
 	{ name: 'Goals', href: '/goals', icon: Target },
 	{ name: 'AI Coach', href: '/ai-coach', icon: Sparkles },
 	{ name: 'Learning', href: '/learning', icon: GraduationCap },
+	{ name: 'MoneyReels', href: '/learning/moneyreels', icon: Clapperboard },
 ]
 
 interface SidebarProps {
@@ -74,7 +75,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 					{isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={20} />}
 				</button>
 
-				<button onClick={() => setIsOpen && setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white p-2">
+				<button onClick={() => setIsOpen && setIsOpen(false)} aria-label="Close menu" className="md:hidden text-slate-400 hover:text-white p-2">
 					<X size={24} />
 				</button>
 			</div>
