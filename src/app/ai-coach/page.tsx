@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw, MessageCircle, Scissors, BarChart3, Lightbulb, CalendarCheck, Send } from 'lucide-react'
+import { Sparkles, Loader2, AlertCircle, TrendingDown, Zap, Target, ChevronRight, Activity, Clock, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import ReactMarkdown from 'react-markdown'
@@ -37,13 +37,6 @@ export default function AICoachPage() {
 	// Usage States
 	const [usageCount, setUsageCount] = useState(0)
 	const [nextResetTime, setNextResetTime] = useState<string | null>(null)
-
-	// Interactive Action States
-	const [actionResponse, setActionResponse] = useState('')
-	const [actionLoading, setActionLoading] = useState(false)
-	const [showInput, setShowInput] = useState(false)
-	const [userQuery, setUserQuery] = useState('')
-	const actionRef = useRef<HTMLDivElement>(null)
 	const [countdown, setCountdown] = useState<string>('')
 
 	// REVALIDATION HELPER: Ensures the Auth Token is attached before querying
@@ -128,13 +121,8 @@ export default function AICoachPage() {
 		setError(null)
 
 		try {
-			// Get current month boundaries
-			const now = new Date()
-			const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-			const endOfToday = now.toISOString()
-
 			const [expensesRes, goalsRes] = await Promise.all([
-				supabase.from('expenses').select('*').eq('user_id', currentUserId).gte('date', startOfMonth).lte('date', endOfToday).order('date', { ascending: false }).limit(100),
+				supabase.from('expenses').select('*').eq('user_id', currentUserId).order('date', { ascending: false }).limit(20),
 				supabase.from('goals').select('id, goal_name, target_amount, deadline').eq('user_id', currentUserId).eq('is_archived', false),
 			])
 
@@ -171,69 +159,10 @@ export default function AICoachPage() {
 
 	const clearActiveAudit = () => {
 		setAdvice(null)
-		setActionResponse('')
-		setShowInput(false)
-		setUserQuery('')
 		sessionStorage.removeItem('finmentor_advice')
 		sessionStorage.removeItem('finmentor_budget')
 		sessionStorage.removeItem('finmentor_count')
 		sessionStorage.removeItem('finmentor_usage')
-	}
-
-	const handleAction = async (type: string) => {
-		if (!advice || actionLoading) return
-		setActionLoading(true)
-		setActionResponse('')
-
-		const prompts: Record<string, string> = {
-			summarize: `Summarize this financial report in 50 words or less. Be sharp and direct:\n\n${advice}`,
-			problems: `List the top 3 most critical financial problems from this report. Number them. Be blunt:\n\n${advice}`,
-			tips: `Give exactly 5 actionable, practical financial tips based on this report. Be specific, not generic:\n\n${advice}`,
-			today: `Based on this financial report, give exactly 3 concrete actions the user should take TODAY. Be urgent and motivating:\n\n${advice}`,
-		}
-
-		try {
-			const res = await fetch('/api/ai-coach', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ prompt: prompts[type] }),
-			})
-			const data = await res.json()
-			if (!res.ok) throw new Error(data.details || data.error || 'Something went wrong')
-			setActionResponse(data.advice)
-		} catch (err: unknown) {
-			const message = err instanceof Error ? err.message : 'Failed to get response'
-			setActionResponse(`❌ ${message}`)
-		} finally {
-			setActionLoading(false)
-			setTimeout(() => actionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
-		}
-	}
-
-	const handleFollowUp = async () => {
-		if (!userQuery.trim() || actionLoading) return
-		setActionLoading(true)
-		setActionResponse('')
-
-		try {
-			const res = await fetch('/api/ai-coach', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					prompt: `${userQuery}\n\nContext from my financial report:\n${advice}`,
-				}),
-			})
-			const data = await res.json()
-			if (!res.ok) throw new Error(data.details || data.error || 'Something went wrong')
-			setActionResponse(data.advice)
-			setUserQuery('')
-		} catch (err: unknown) {
-			const message = err instanceof Error ? err.message : 'Failed to get response'
-			setActionResponse(`❌ ${message}`)
-		} finally {
-			setActionLoading(false)
-			setTimeout(() => actionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
-		}
 	}
 
 	// Countdown Timer logic
@@ -345,7 +274,7 @@ export default function AICoachPage() {
 				<div ref={adviceRef} className="space-y-6 animate-in slide-in-from-bottom-6 duration-700">
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						{[
-							{ label: 'This Month', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+							{ label: 'Items Scanned', value: expenseCount, icon: TrendingDown, color: 'text-blue-400', bg: 'bg-blue-500/10' },
 							{
 								label: 'Budget Limit',
 								value: `₹${Number(monthlyBudget).toLocaleString('en-IN')}`,
@@ -396,101 +325,6 @@ export default function AICoachPage() {
 								{advice}
 							</ReactMarkdown>
 						</div>
-						{/* === ACTION BUTTONS === */}
-						<div className="mt-8 pt-6 border-t border-slate-800/60">
-							<p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-								<Sparkles size={12} className="text-purple-400" /> Quick Actions
-							</p>
-							<div className="flex flex-wrap gap-2">
-								{[
-									{ key: 'summarize', label: 'Summarize', icon: Scissors, color: 'hover:border-cyan-500/50 hover:text-cyan-400' },
-									{ key: 'problems', label: 'Key Problems', icon: BarChart3, color: 'hover:border-red-500/50 hover:text-red-400' },
-									{ key: 'tips', label: 'Quick Tips', icon: Lightbulb, color: 'hover:border-amber-500/50 hover:text-amber-400' },
-									{ key: 'today', label: 'What to do today', icon: CalendarCheck, color: 'hover:border-emerald-500/50 hover:text-emerald-400' },
-								].map((action) => (
-									<button
-										key={action.key}
-										onClick={() => handleAction(action.key)}
-										disabled={actionLoading}
-										className={`px-4 py-2.5 text-xs font-bold text-slate-300 bg-slate-800/50 border border-slate-700/60 rounded-xl transition-all flex items-center gap-2 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed ${action.color}`}
-									>
-										<action.icon size={14} />
-										{action.label}
-									</button>
-								))}
-								<button
-									onClick={() => setShowInput((v) => !v)}
-									className={`px-4 py-2.5 text-xs font-bold border rounded-xl transition-all flex items-center gap-2 active:scale-95 ${
-										showInput
-											? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-											: 'bg-slate-800/50 border-slate-700/60 text-slate-300 hover:border-purple-500/50 hover:text-purple-400'
-									}`}
-								>
-									<MessageCircle size={14} />
-									Ask Follow-up
-								</button>
-							</div>
-						</div>
-
-						{/* === FOLLOW-UP INPUT === */}
-						{showInput && (
-							<div className="mt-4 flex gap-2 animate-in slide-in-from-top-2 duration-300">
-								<input
-									value={userQuery}
-									onChange={(e) => setUserQuery(e.target.value)}
-									onKeyDown={(e) => e.key === 'Enter' && handleFollowUp()}
-									placeholder="Ask anything about your finances..."
-									disabled={actionLoading}
-									className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700/60 rounded-xl outline-none text-sm font-medium text-white placeholder:text-slate-500 focus:border-purple-500 transition-all disabled:opacity-30"
-								/>
-								<button
-									onClick={handleFollowUp}
-									disabled={actionLoading || !userQuery.trim()}
-									className="px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-2 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-								>
-									<Send size={14} />
-									Ask
-								</button>
-							</div>
-						)}
-
-						{/* === ACTION RESPONSE === */}
-						{actionLoading && (
-							<div className="mt-4 flex items-center justify-center py-8 bg-slate-800/30 rounded-2xl border border-slate-700/40 animate-pulse">
-								<Loader2 className="animate-spin text-purple-400 mr-3" size={20} />
-								<span className="text-sm font-bold text-slate-400">Thinking...</span>
-							</div>
-						)}
-
-						{actionResponse && !actionLoading && (
-							<div ref={actionRef} className="mt-4 p-6 bg-slate-800/40 rounded-2xl border border-purple-500/20 animate-in slide-in-from-bottom-4 duration-500">
-								<p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-									<MessageCircle size={12} /> AI Response
-								</p>
-								<div className="prose prose-invert prose-sm max-w-none text-slate-300">
-									<ReactMarkdown
-										components={{
-											h1: ({ ...props }) => (
-												<h1 className="text-lg font-bold mb-3 text-white" {...props} />
-											),
-											h2: ({ ...props }) => (
-												<h2 className="text-base font-bold mt-4 mb-2 text-white border-l-2 border-purple-500 pl-2" {...props} />
-											),
-											li: ({ children }) => (
-												<div className="p-3 px-4 mb-1.5 flex items-start gap-2 bg-slate-700/20 rounded-xl border border-slate-700/30">
-													<ChevronRight size={14} className="mt-0.5 text-purple-400 shrink-0" />
-													<span className="text-slate-200 font-medium text-sm">{children}</span>
-												</div>
-											),
-											strong: ({ ...props }) => <strong className="font-extrabold text-white" {...props} />,
-										}}
-									>
-										{actionResponse}
-									</ReactMarkdown>
-								</div>
-							</div>
-						)}
-
 						<div className="mt-10 pt-6 border-t border-slate-800 flex justify-between items-center">
 							<button
 								onClick={clearActiveAudit}

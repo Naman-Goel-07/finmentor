@@ -37,27 +37,19 @@ export async function POST(req: Request) {
 		}
 
 		// 3. Prepare AI Data
-		const body = await req.json()
-		let prompt: string
+		const { income, expenses, goals } = await req.json()
 
-		if (body.prompt) {
-			// Follow-up / action button mode: direct prompt
-			prompt = `You are FinMentor AI, an expert financial coach for Gen-Z students. Respond in Markdown. Be concise, brutally honest, and use emojis.\n\n${body.prompt}`
-		} else {
-			// Original full-analysis mode
-			const { income, expenses, goals } = body
-			prompt = `
+		const prompt = `
             You are FinMentor AI, an expert financial coach for Gen-Z students.
             CONTEXT:
             - Monthly Budget: ₹${income}
-            - Current Month Expenses: ${JSON.stringify(expenses)}
+            - Recent Expenses: ${JSON.stringify(expenses)}
             - Active Savings Goals: ${JSON.stringify(goals)}
             
             TASK: Roast their spending habits, identify specific "Goal Killers" (e.g. food apps, luxury buys), and audit their goal progress. 
             Calculate how much they need to save daily to hit their goals if they are behind.
             FORMAT: Markdown (H1, H2, Bullet points). TONE: Brutally honest, conversational, heavy on emojis.
         `
-		}
 
 		// 4. Generate Content (Gemini 2.5 series)
 		const response = await client.models.generateContent({
