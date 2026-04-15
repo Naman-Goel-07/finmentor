@@ -51,7 +51,7 @@ export async function POST(req: Request) {
             FORMAT: Markdown (H1, H2, Bullet points). TONE: Brutally honest, conversational, heavy on emojis.
         `
 
-		// 4. Generate Content (Gemini 2.5 series)
+		// 4. Generate Content (Gemini 1.5 series)
 		const response = await client.models.generateContent({
 			model: 'gemini-1.5-flash',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
