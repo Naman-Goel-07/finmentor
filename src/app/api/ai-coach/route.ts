@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
 		// 4. Generate Content (Gemini 2.5 series)
 		const response = await client.models.generateContent({
-			model: 'gemini-2.5-flash',
+			model: 'gemini-1.5-flash',
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
 		})
 
